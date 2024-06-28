@@ -16,3 +16,4 @@ const db = new Database("db.sqlite");
 db.exec("PRAGMA journal_mode = WAL;");
 
 logger.debug(db.query("select 'hello world' as message").get())
+

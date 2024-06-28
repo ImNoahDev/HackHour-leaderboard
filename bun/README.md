@@ -1,15 +1,27 @@
-# hackhour-leaderboard
+# Hackhour Leaderboard
 
-To install dependencies:
+## Plan:
+- Show count of active sessions
+- Have a leaderboard containing:
+    - Username
+    - Ticket Count
 
-```bash
-bun install
-```
+- Create /leaderboad slack bot
+- pull number of minutes
 
-To run:
 
-```bash
-bun run index.ts
-```
+## DB
 
-This project was created using `bun init` in bun v1.1.4. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+### users
+
+id: txt PK
+username: txt
+
+### tickets
+
+id: 
+unix: 
+
+
+
+

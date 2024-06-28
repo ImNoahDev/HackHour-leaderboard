@@ -10,10 +10,10 @@ const logger = new Logger("hackhour-leaderboard", "leaderbot", {
     }
 });
 
+const channelId = 'C06SBHMQU8G';
+const token = process.env.SLACK_TOKEN;
 
 async function getAllChannelMembers() {
-    const channelId = 'C06SBHMQU8G';
-    const token = process.env.SLACK_TOKEN;
   let allMembers: string[] = [];
   let cursor = '';
 
@@ -49,6 +49,12 @@ async function getAllChannelMembers() {
   }
 }
 
-getAllChannelMembers().then(() => {
-  logger.log('Finished fetching channel members');
-});
+// Main execution
+
+
+if (!token) {
+  logger.fatal('SLACK_TOKEN environment variable is not set');
+  process.exit(1);
+}
+
+export default getAllChannelMembers;
