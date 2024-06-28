@@ -15,37 +15,36 @@ const token = process.env.SLACK_TOKEN;
 
 
 // Function to fetch user information by user ID
-async function getUserInfo(userId: string) {
+export async function getUserInfo(userId: string) {
   const url = `https://slack.com/api/users.info?user=${userId}`;
 
   try {
-     fetch(url, {
+    return fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }).then((response) => {
-      return Promise.resolve(response.json());
-
-      })
-    // logger.debug(await response.json())
-    // if (response.ok) {
-   
-    //   if (data.ok) {
-    //     logger.debug("Made it past ok")
-    //     return data.user.profile.display_name;
-    //   } else {
-    //     throw new Error(`Error from Slack API: ${data.error}`);
-    //   }
-    // } else {
-    //   throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
-    // }
+    })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok ' + response.statusText);
+      }
+      return response.json();
+    })
+    .then((data) => {
+      // console.log(data); // Logs the data correctly
+      return data; // This data is wrapped in a promise
+    })
+    .catch((error) => {
+      console.error('There has been a problem with your fetch operation:', error);
+    });
+  
   } catch (error) {
     console.error('Error fetching user info:', error);
     return null;
   }
 }
 
-async function getAllChannelMembers() {
+export async function getAllChannelMembers() {
   let allMembers: string[] = [];
   let cursor = '';
 
@@ -91,8 +90,9 @@ if (!token) {
 
 // console.log(getUserInfo("U0735FTMS3V"))
 
-async function Main() {
-  console.log(await getUserInfo("U0735FTMS3V"))
-}
-// export default getAllChannelMembers;
-Main()
+// // async function Main() {
+// //   let data = await getUserInfo("U0735FTMS3V")
+// //   console.log(data.user.profile.display_name)
+// // }
+// // // export default getAllChannelMembers;
+// // Main()
