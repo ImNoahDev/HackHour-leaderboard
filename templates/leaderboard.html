@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-4">Leaderboard</h1>
+
+        <!-- Add User Form -->
+        <form action="{{ url_for('add_user') }}" method="post" class="mb-4">
+            <label for="slack_id" class="block mb-1">Slack ID:</label>
+            <input type="text" id="slack_id" name="slack_id" placeholder="Enter Slack ID" class="border border-gray-300 rounded-md p-2 w-full mb-2">
+
+            <label for="username" class="block mb-1">Username:</label>
+            <input type="text" id="username" name="username" placeholder="Enter Username" class="border border-gray-300 rounded-md p-2 w-full mb-2">
+
+            <button type="submit" class="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">Add User</button>
+        </form>
+
+        <!-- Leaderboard Table -->
+        <table class="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+            <thead class="bg-gray-800 text-white">
+                <tr>
+                    <th class="py-2 px-4">Rank</th>
+                    <th class="py-2 px-4">Username</th>
+                    <th class="py-2 px-4">Sessions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users[:100] %}
+                <tr class="{{ 'bg-gray-100' if loop.index % 2 == 0 else 'bg-white' }}">
+                    <td class="py-2 px-4">{{ loop.index }}</td>
+                    <td class="py-2 px-4">{{ user['username'] }}</td>
+                    <td class="py-2 px-4">{{ user['sessions'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
