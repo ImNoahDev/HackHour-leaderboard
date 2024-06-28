@@ -19,9 +19,15 @@ username: txt
 
 ### tickets
 
-id: 
-unix: 
+id: int PK // Ticket ID
+user: users.id
+unix: int
+sessions: int
+minutes: int
+
+## 
 
 
 
 
+https://api.slack.com/methods/users.info

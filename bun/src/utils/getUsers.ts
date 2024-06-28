@@ -13,6 +13,38 @@ const logger = new Logger("hackhour-leaderboard", "leaderbot", {
 const channelId = 'C06SBHMQU8G';
 const token = process.env.SLACK_TOKEN;
 
+
+// Function to fetch user information by user ID
+async function getUserInfo(userId: string) {
+  const url = `https://slack.com/api/users.info?user=${userId}`;
+
+  try {
+     fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }).then((response) => {
+      return Promise.resolve(response.json());
+
+      })
+    // logger.debug(await response.json())
+    // if (response.ok) {
+   
+    //   if (data.ok) {
+    //     logger.debug("Made it past ok")
+    //     return data.user.profile.display_name;
+    //   } else {
+    //     throw new Error(`Error from Slack API: ${data.error}`);
+    //   }
+    // } else {
+    //   throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+    // }
+  } catch (error) {
+    console.error('Error fetching user info:', error);
+    return null;
+  }
+}
+
 async function getAllChannelMembers() {
   let allMembers: string[] = [];
   let cursor = '';
@@ -57,4 +89,10 @@ if (!token) {
   process.exit(1);
 }
 
-export default getAllChannelMembers;
+// console.log(getUserInfo("U0735FTMS3V"))
+
+async function Main() {
+  console.log(await getUserInfo("U0735FTMS3V"))
+}
+// export default getAllChannelMembers;
+Main()

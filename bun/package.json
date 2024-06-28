@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@slack/web-api": "^7.2.0",
-    "louis-log": "github:Bilbo1Gaming/louis-log#stable-v0.9-clean-exit-update"
+    "louis-log": "github:Bilbo1Gaming/louis-log#stable-v0.9-clean-exit-update",
+    "node-schedule": "^2.1.1"
   }
 }
