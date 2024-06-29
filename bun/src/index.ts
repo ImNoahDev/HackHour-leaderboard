@@ -47,12 +47,12 @@ logger.debug(db.query("select 'hello world' as message").get())
         if (stats == null) continue;
         if (stats.sessions == 0 || stats.total == null || stats.total == 0) continue;
         logger.debug("Saving to DB",{member: members[member].id, stats})
-        logger.success(db.query("INSERT INTO tickets ( id, user , unix , sessions, minutes ) VALUES (null, $user, $unix, $sessions, $minutes)").run({
+        db.query("INSERT INTO tickets ( id, user , unix , sessions, minutes ) VALUES (null, $user, $unix, $sessions, $minutes)").run({
             $user: members[member].id,
             $unix: currentTime,
             $sessions: stats.sessions,
             $minutes: stats.total
-        }))
+        })
     }
 }
   
@@ -75,35 +75,75 @@ async function updateUserList(){
 }
 
 async function fullUserListUpdate() {
-    logger.log("Starting full user update")
+    try {
+        logger.log("Starting full user update")
 
-    const members = db.query("SELECT id FROM users").all() 
+        const members = db.query("SELECT id FROM users").all() 
 
-    logger.debug("Member Count from DB:", members.length)
+        logger.debug("Member Count from DB:", members.length)
 
-    for (const member in members) {
-        await sleep(100)
+        let delayCounter = 0
+
+        for (const member in members) {
+            try {
+                delayCounter += 1
+
+            if (delayCounter > 500) {
+                logger.log("Waiting 45 seconds in slack full user update")
+                await sleep (45000)
+                delayCounter = 0
+            }
+
+            await sleep(50)
+            
+            let userdata 
+
+            try {
+                userdata = await getUserInfo(members[member].id)
+            } catch (error) {
+                logger.error("There was an issue getting data from slack, waiting 45 seconds and trying again",members[member].id)
+                await sleep(45000)
+                try {
+                    userdata = await getUserInfo(members[member].id)
+                } catch (error) {
+                    logger.fatal("There was an issue connecting to slack for attempt 2", members[member].id)
+                }
+            }
+
+
+            if (userdata == undefined) {
+                logger.error("No data from slack", members[member].id)
+                continue
+            }
+            
+            if (userdata.error == "user_not_found") {
+                logger.error("Slack user in DB but no data", members[member].id)
+                continue
+            };
+    
+            if (userdata.ok != true) {
+                logger.error("Error getting slack info for user", members[member].id)
+                continue
+            };
+
+            logger.debug("Saving to DB",members[member].id)
+            db.query("UPDATE users SET  realname=$realname , displayname=$displayname , avatar=$avatar, tz=$tz WHERE id = $id").run({
+                $id: members[member].id,
+                $realname: userdata.user.profile.real_name,
+                $displayname: userdata.user.profile.display_name,
+                $avatar: userdata.user.profile.image_48,
+                $tz: userdata.user.tz
+            })
+            } catch (error) {
+                logger.error("Error Updating full user", {member: members[member].id, error: error})
+            }
+
+            
+        }
+        logger.success("Finished full updating all slack users")
         
-        let userdata = await getUserInfo(members[member].id)
-        
-        if (userdata.error == "user_not_found") {
-            logger.error("Slack user in DB but no data", members[member].id)
-            continue
-        };
-
-        if (userdata.ok != true) {
-            logger.error("Error getting slack info for user", members[member].id)
-            continue
-        };
-
-        logger.debug("Saving to DB",members[member].id)
-        logger.success(db.query("UPDATE users SET  realname=$realname , displayname=$displayname , avatar=$avatar, tz=$tz WHERE id = $id").run({
-            $id: members[member].id,
-            $realname: userdata.user.profile.real_name,
-            $displayname: userdata.user.profile.display_name,
-            $avatar: userdata.user.profile.image_48,
-            $tz: userdata.user.tz
-        }))
+    } catch (error) {
+        logger.error("Error in updating of all full users from slack", error)
     }
 }
 

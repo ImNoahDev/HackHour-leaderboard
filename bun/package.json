@@ -10,7 +10,14 @@
   },
   "dependencies": {
     "@slack/web-api": "^7.2.0",
+    "canvas": "^2.11.2",
+    "canvas-to-buffer": "^3.0.1",
+    "heatmap.js": "^2.0.5",
+    "leaflet": "^1.9.4",
+    "leaflet.heat": "^0.2.0",
     "louis-log": "github:Bilbo1Gaming/louis-log#stable-v0.9-clean-exit-update",
-    "node-schedule": "^2.1.1"
+    "moment-timezone": "^0.5.45",
+    "node-schedule": "^2.1.1",
+    "timezone-support": "^3.1.0"
   }
 }
