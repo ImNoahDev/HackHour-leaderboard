@@ -30,7 +30,6 @@ logger.debug(db.query("select 'hello world' as message").get())
 // schedule.scheduleJob('*/10 * * * * *', updateTicketCount );
 // schedule.scheduleJob('*/20 * * * * *', updateUserList );
 
-updateTicketCount()
 
   async function updateTicketCount(){
     const currentTime = Math.floor(new Date().getTime() / 1000)
@@ -69,8 +68,43 @@ async function updateUserList(){
         for (const user of users) insertUser.run(user);
     });
 
-    const count = insertUsers(members);
+    insertUsers(members);
+
+    
       
-    logger.log(`Inserted ${count} users`);
 }
 
+async function fullUserListUpdate() {
+    logger.log("Starting full user update")
+
+    const members = db.query("SELECT id FROM users").all() 
+
+    logger.debug("Member Count from DB:", members.length)
+
+    for (const member in members) {
+        await sleep(100)
+        
+        let userdata = await getUserInfo(members[member].id)
+        
+        if (userdata.error == "user_not_found") {
+            logger.error("Slack user in DB but no data", members[member].id)
+            continue
+        };
+
+        if (userdata.ok != true) {
+            logger.error("Error getting slack info for user", members[member].id)
+            continue
+        };
+
+        logger.debug("Saving to DB",members[member].id)
+        logger.success(db.query("UPDATE users SET  realname=$realname , displayname=$displayname , avatar=$avatar, tz=$tz WHERE id = $id").run({
+            $id: members[member].id,
+            $realname: userdata.user.profile.real_name,
+            $displayname: userdata.user.profile.display_name,
+            $avatar: userdata.user.profile.image_48,
+            $tz: userdata.user.tz
+        }))
+    }
+}
+
+fullUserListUpdate()
