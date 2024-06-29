@@ -7,7 +7,6 @@
     <!-- Include Tailwind CSS with dark mode via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/custom-forms"></script>
-    <link rel="stylesheet" href="/public/index.css">
     <style>
         /* Enable dark mode */
         @media (prefers-color-scheme: dark) {
@@ -62,6 +61,15 @@
             }
         }
 
+        function formatTimeIn12HourClock(date) {
+            let hours = date.getHours();
+            const minutes = date.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
+            const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+            return hours + ':' + minutesStr + ' ' + ampm;
+        }
 
         async function renderLeaderboard() {
             if (isLoading) return;
@@ -93,26 +101,38 @@
                     let timeZone = entry.tz;
                     let currentTime 
                     let formattedTime 
+                    if (!timeZone) {
+                        timezone = ""
+                        console.error(`Timezone not found for user ${uId}`);
+                         currentTime = ""
+                         formattedTime = ""
+                    } else {
+                         currentTime = new Date().toLocaleString("en-US", { timeZone });
+                         formattedTime = formatTimeIn12HourClock(new Date(currentTime));
+                         timezone = timeZone.replace(/_/g, ' ').replace(/\//g, ', ')
+                    }
                     // Create entry HTML
                     const entryHTML = `
-                        <div class="flex items-center p-4 bg-white dark:bg-gray-800 shadow-md rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                        <div class="flex items-center  p-4 bg-white dark:bg-gray-800 shadow-md rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300">
                             <a href="https://hackclub.slack.com/team/${uId}" target="_blank" rel="noreferrer noopener" >
-                                <div class="flex items-center space-x-4">
-                                    <span class="text-2xl font-bold text-gray-700 dark:text-gray-300">${rank}.</span>
-                                    <img src="${profilePicture}" alt="${realName}'s Profile Picture" class="w-12 h-12 rounded-xl">
-                                    <div>
-                                        <p class="text-lg font-semibold dark:text-gray-300">@${displayName}</p>
-                                        <p class="text-gray-600 dark:text-gray-400">${realName}</p>
-                                    </div>
+                            <div class="flex items-center space-x-4">
+                                <span class="text-lg font-bold text-gray-700 dark:text-gray-300">${rank}.</span>
+                                <img src="${profilePicture}" alt="${realName}'s Profile Picture" class="w-12 h-12 rounded-xl">
+                                <div>
+                                    <p class="text-lg font-semibold dark:text-gray-300">@${displayName}</p>
+                                    <p class="text-gray-600 dark:text-gray-400">${realName}</p>
+                                    <p class="text-gray-600 dark:text-gray-400">${sessions} sessions</p>
                                 </div>
-                            </a>
-
-                            <div class=" ml-8 text-center bg-gray-600 px-2 py-1 rounded-xl">
-                                <p class="text-gray-600 dark:text-gray-300 font-bold">${timeZone}</p>
                             </div>
-
-                            <div class="ml-auto mr-2 flex items-center space-x-2">
-                                <p class="text-2xl font-bold text-gray-700 dark:text-gray-300">${Math.floor(minutes/60)}</p>
+                            </a>
+                            <div class="flex items-center justify-center flex-grow">
+                                <div class="text-center">
+                                    <p class="text-gray-600 dark:text-gray-400 font-bold">${timeZone}</p>
+                                    <p class="text-gray-600 dark:text-gray-400">${formattedTime}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <p class="text-2xl font-bold text-gray-700 dark:text-gray-300">${sessions}</p>
                                 <img src="https://emoji.slack-edge.com/T0266FRGM/tw_admission_tickets/cab11d6f34ffab2d.png" alt="Ticket Icon" class="w-8 h-8">
                             </div>
                         </div>
@@ -122,8 +142,34 @@
                     // Append entry to leaderboard container
                     leaderboardContainer.innerHTML += entryHTML;
 
-            })}}
-        
+                    // Update time immediately and start interval for live update
+                    updateTime(entry.id, timeZone);
+                    if (!timeZone){
+                        console.error(`Timezone not found for user ${uId}`);
+                    } else {
+                        setInterval(() => updateTime(entry.id, timeZone), 60000); // Update every minute
+                    }
+                });
+
+                // Update next cursor
+                nextCursor = data.next_cursor;
+            }
+        }
+
+        function updateTime() {
+    // Start updating time every minute
+    setInterval(() => {
+        const entries = document.querySelectorAll('.leaderboard-entry'); // Assuming each entry has a class 'leaderboard-entry'
+        entries.forEach(entry => {
+            const currentTimeElement = entry.querySelector('.current-time');
+            if (currentTimeElement) {
+                const currentTime = new Date();
+                const formattedTime = formatTimeIn12HourClock(currentTime);
+                currentTimeElement.textContent = formattedTime;
+            }
+        });
+    }, 60000); // Update every minute (60000 milliseconds)
+}
 
         // Load initial leaderboard when the page loads
         document.addEventListener('DOMContentLoaded', () => {
@@ -140,7 +186,6 @@
                 }
             }
         });
-
     </script>
 </body>
 </html>

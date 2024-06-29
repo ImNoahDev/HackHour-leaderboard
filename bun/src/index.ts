@@ -166,6 +166,10 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname,"./views/index.html"))
 })
 
+app.get("/public/index.css", (req, res) => {
+    res.sendFile(path.join(__dirname,"./views/index.css"))
+})
+
 
 // * API
 const api = new Logger("hackhour-leaderboard","API",{
