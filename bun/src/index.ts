@@ -168,6 +168,9 @@ app.get("/", (req, res) => {
 app.get("/public/nullimage.jpg", (req, res) => {
     res.sendFile(path.join(__dirname,"./views/nullimage.jpg"))
 })
+app.get("/public/blueTicket.png", (req, res) => {
+    res.sendFile(path.join(__dirname,"./views/blueTicket.png"))
+})
 
 // * API
 const api = new Logger("hackhour-leaderboard","API",{
@@ -238,14 +241,15 @@ app.get("/api/leaderboard", (req, res) => {
             SELECT ROW_NUMBER() OVER (ORDER BY minutes DESC) AS row, DENSE_RANK() OVER (ORDER BY minutes DESC) AS rank, users.id, sessions, minutes, users.realname, users.displayname, users.avatar, users.tz 
             FROM tickets
             LEFT JOIN users ON tickets.user=users.id
-            WHERE unix = 1719655200
+            WHERE unix = $unix
             ORDER BY minutes DESC
         ) AS keyset
         WHERE row > $cursor
         ORDER BY rank
         LIMIT 50;`)
         .all({
-            $cursor: startPage - 1
+            $cursor: startPage - 1,
+            $unix: unix
         })
 
     api.debug("Data gotten from DB")
@@ -259,8 +263,31 @@ app.get("/api/leaderboard", (req, res) => {
 
 });
 
+app.get("/api/leaderboard/winner", (req, res) => {
+    
 
+    const winners = db.query(
+        `SELECT * FROM winners ORDER BY unix DESC`
+    ).all()
 
+    if (winners.length == 0){
+        return res.send({unix: 0, user: 0})
+    }
+
+    let currentWinner = winners[0].user
+    let lastwinner 
+
+    for (let winner in winners) {
+        let winnerItem = winners[winner]
+        api.debug(winnerItem)
+        if (winnerItem.user != currentWinner) {
+            return res.send(lastwinner)
+        }
+        lastwinner = winnerItem
+    }
+
+    return res.send({unix: 0, user: 0})
+})
 
 
 

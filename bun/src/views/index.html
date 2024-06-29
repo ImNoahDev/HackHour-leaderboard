@@ -17,9 +17,11 @@
             .dark\:text-gray-400 { color: #cbd5e0; }
             .dark\:text-gray-500 { color: #a0aec0; }
         }
+
+        .idn {display: none;}
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 p-6" onload="loadSequence()">
+<body class="bg-gray-100 dark:bg-gray-900 p-6">
     <div class="max-w-3xl mx-auto">
         <h1 class="text-3xl font-bold text-center mb-8 dark:text-gray-300">Arcade Leaderboard</h1>
 
@@ -43,6 +45,8 @@
         let isLoading = false;
         
         let fullWidthState = null;
+
+        let powerUnix;
 
         function refreshSessions(){
             // TODO
@@ -83,6 +87,12 @@
             
             // Fetch leaderboard data
             const data = await fetchLeaderboardData();
+
+            try {
+                powerUnix = await fetch("/api/leaderboard/winner").unix
+            } catch (error) {
+                console.error(error)
+            }
             
             // Hide loader after fetching data
             loader.style.display = 'none';
@@ -95,11 +105,14 @@
                     let profilePicture = entry.avatar;
                     let realName = entry.realname;
                     let displayName = entry.displayname || realName;
-                    realName = realName;
                     const sessions = entry.sessions;
                     const minutes = entry.minutes;
                     const rank = entry.rank;
+                    let ticketUrl = "https://emoji.slack-edge.com/T0266FRGM/tw_admission_tickets/cab11d6f34ffab2d.png";
+                    let textcolor = 'text-gray'
                     let timeZone = entry.tz;
+                    let timezoneColor = 'bg-gray-600'
+                    let nullcolor = 'bg-gray-800'
                     if (timeZone) {
                         timeZone = timeZone.replace(/_/g, ' ').replace(/\//g, ', ').split(', ').reverse().join(', ');
                     }
@@ -109,33 +122,49 @@
                     if (!timeZone) {
                         timeZone = 'Error with user data';
                     }
-                    let nullcolor = 'bg-gray-800'
                     if (realName === null && displayName === null) {
-                        nullcolor = 'bg-red-800'
+                        nullcolor = 'bg-red-900'
+                        timezoneColor = ''
+                        timeZone = ""
                         realName = 'Error with user data'
                         displayName = 'Error with user data'
+                    }
+
+                    if (rank == 1) {
+                        nullcolor = 'bg-amber-500'
+                        textcolor = 'text-black'
+                        timezoneColor = 'bg-yellow-600'
+                        ticketUrl = "public/blueTicket.png"
+
                     }
                     // Create entry HTML
                     const entryHTML = `
                         <div class="flex items-center p-4 bg-white dark:${nullcolor} shadow-md rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300">
                             <a href="https://hackclub.slack.com/team/${uId}" target="_blank" rel="noreferrer noopener" >
                                 <div class="flex items-center space-x-4">
-                                    <span class="text-2xl font-bold text-gray-700 dark:text-gray-300">${rank}.</span>
+                                    <span class="text-2xl font-bold ${textcolor}-700 dark:${textcolor}-300">${rank}.</span>
                                     <img src="${profilePicture}" alt="${realName}'s Profile Picture" class="w-12 h-12 rounded-xl">
                                     <div>
-                                        <p class="text-lg font-semibold dark:text-gray-300">${displayName}</p>
-                                        <p class="text-gray-600 dark:text-gray-400">@${realName}</p>
+                                        <p class="dpn text-lg font-semibold dark:${textcolor}-300">${displayName}</p>
+                                        <p class="idn text-lg font-semibold dark:${textcolor}-300">${uId}</p>
+                                        <p class="${textcolor}-600 dark:${textcolor}-400">@${realName}</p>
                                     </div>
                                 </div>
                             </a>
 
-                            <div class="tz ml-8 text-center bg-gray-600 px-2 py-1 rounded-xl">
-                                <p class="text-gray-600 dark:text-gray-300 font-bold">${timeZone}</p>
+                            <div class="tz ml-8 text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                                <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">${timeZone}</p>
                             </div>
 
+                            ${
+                            rank == 1 ?  `<div id="timer" class="tz ml-8 text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                                <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">0:0:0</p>
+                            </div>` : ``
+                            }
+
                             <div class="ml-auto mr-2 flex items-center space-x-2">
-                                <p class="text-2xl font-bold text-gray-700 dark:text-gray-300">${Math.floor(minutes/60)}</p>
-                                <img src="https://emoji.slack-edge.com/T0266FRGM/tw_admission_tickets/cab11d6f34ffab2d.png" alt="Ticket Icon" class="w-8 h-8">
+                                <p class="text-2xl font-bold ${textcolor}-700 dark:${textcolor}-300">${Math.floor(minutes/60)}</p>
+                                <img src="${ticketUrl}" alt="Ticket Icon" class="w-8 h-8">
                             </div>
                         </div>
                     `;
@@ -148,8 +177,9 @@
         
 
         // Load initial leaderboard when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            renderLeaderboard();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await renderLeaderboard();
+            loadSequence()            
         });
 
         // Infinite scroll with keyset pagination
@@ -188,6 +218,7 @@
         }
 
         async function loadSequence(){
+            console.log("Loading")
             if (window.innerWidth < 650){
                 var elements = document.getElementsByClassName('tz');
     
@@ -204,6 +235,71 @@
                 fullWidthState = true
             }
         }
+        
+
+        // Keep track of pressed keys
+        var pressedKeys = {};
+        var idMode = false
+
+        document.addEventListener('keydown', function(event) {
+        // Set the corresponding key in the pressedKeys object to true
+        pressedKeys[event.key] = true;
+
+        // Check if both '.' and '/' keys are pressed
+        if (pressedKeys['/'] && pressedKeys['i'] && pressedKeys['d']) {
+            idMode = !idMode
+            if (idMode){
+                var elements = document.getElementsByClassName('dpn');
+    
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].style.display = 'none';
+                }
+                var elements = document.getElementsByClassName('idn');
+    
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].style.display = 'block';
+                }
+            } else {
+                var elements = document.getElementsByClassName('dpn');
+    
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].style.display = 'block';
+                }
+                var elements = document.getElementsByClassName('idn');
+    
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].style.display = 'none';
+                }
+            }
+        }
+        });
+
+        document.addEventListener('keyup', function(event) {
+        // Set the corresponding key in the pressedKeys object to false when released
+        pressedKeys[event.key] = false;
+        });
+
+
+    
+        function updateTimer() {
+        unixDate = pofrwerUnix
+        // Get current Unix timestamp in seconds
+        const currentUnixTime = Math.floor(Date.now() / 1000);
+        
+        // Calculate the difference in seconds
+        const differenceInSeconds = currentUnixTime - unixDate;
+        
+        // Calculate days, hours, and minutes
+        const days = Math.floor(differenceInSeconds / (60 * 60 * 24));
+        const hours = Math.floor((differenceInSeconds % (60 * 60 * 24)) / (60 * 60));
+        const minutes = Math.floor((differenceInSeconds % (60 * 60)) / 60);
+        
+        // Update the timer display
+        document.getElementById('timer').textContent = `${days}:${hours}:${minutes}`;
+        }
+
+        // Update the timer every second
+        setInterval(updateTimer, 1000);
 
     </script>
 </body>
