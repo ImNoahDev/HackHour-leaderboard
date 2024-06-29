@@ -6,12 +6,18 @@ SELECT * FROM tickets
 WHERE unix = 1719655200
 ORDER BY minutes DESC;
 
+-- Keyset pagination for getting leaderboard on /leaderboard
+SELECT row, rank, id, sessions, minutes, realname, displayname, avatar, tz FROM (
+    SELECT ROW_NUMBER() OVER (ORDER BY minutes DESC) AS row, DENSE_RANK() OVER (ORDER BY minutes DESC) AS rank, users.id, sessions, minutes, users.realname, users.displayname, users.avatar, users.tz 
+    FROM tickets
+    LEFT JOIN users ON tickets.user=users.id
+    WHERE unix = 1719655200
+    ORDER BY minutes DESC
+) AS keyset
+WHERE row > 0
+ORDER BY rank
+LIMIT 50;
 
-SELECT users.id, sessions, minutes, users.realname, users.displayname, users.avatar, users.tz 
-FROM tickets
-LEFT JOIN users ON tickets.user=users.id
-WHERE unix = 1719655200
-ORDER BY minutes DESC;
 
 SELECT ROWID FROM users;
 

@@ -1,6 +1,9 @@
 import { Database } from "bun:sqlite";
 import Logger from "louis-log"
 import schedule from "node-schedule"
+import jwt from "jsonwebtoken"
+
+const JWT_PK = process.env.JWT_PRIVATE_KEY
 
 import { getUserInfo, getAllChannelMembers } from "./utils/getUsers"
 import { getStatsForUser } from "./utils/getHack";
@@ -206,31 +209,41 @@ app.get("/api/leaderboard", (req, res) => {
 
     api.debug("DB Latest unix",unix)
     
+    let startPage = 1
+
     if (cursor == null) { // No cursor
-    
-
-
-        return res.send()
+        api.debug("No cursor provided")
+    } else {
+        api.debug("Cursor Provided, decoding...")
+        let decoded = jwt.verify(cursor,JWT_PK)
+        if (decoded.sub == "/leaderboard") startPage = decoded.next_cursor
+        api.debug(decoded)
     }
 
+    api.debug("Start page",startPage)
 
-    // We have a cursor here
+    const data = db.query(`
+        SELECT row, rank, id, sessions, minutes, realname, displayname, avatar, tz FROM (
+            SELECT ROW_NUMBER() OVER (ORDER BY minutes DESC) AS row, DENSE_RANK() OVER (ORDER BY minutes DESC) AS rank, users.id, sessions, minutes, users.realname, users.displayname, users.avatar, users.tz 
+            FROM tickets
+            LEFT JOIN users ON tickets.user=users.id
+            WHERE unix = 1719655200
+            ORDER BY minutes DESC
+        ) AS keyset
+        WHERE row > $cursor
+        ORDER BY rank
+        LIMIT 50;`)
+        .all({
+            $cursor: startPage - 1
+        })
 
-    api.log("test")
+    let out = {
+        next_cursor: jwt.sign({sub: "/leaderboard", exp:  Math.floor(Date.now() / 1000) + 1800 , next_cursor: startPage + 50},JWT_PK),
+        leaderboard: data
+    }
 
-    // const data = db.query(`
-    //     WITH RankedScores AS (
-    //         SELECT unix, user, sessions, minutes, RANK() OVER (ORDER BY minutes DESC) AS rank
-    //         FROM tickets WHERE unix = $unix
-    //     )
-    //     SELECT unix, user, sessions, minutes, rank
-    //     FROM RankedScores
-    //     WHERE user = $id;`)
-    //     .get({ $unix:unix, $id: id})
-    
-    // api.debug("DB result",data)
-    
-    res.send(cursor);
+    res.send(out)
+
 });
 
 

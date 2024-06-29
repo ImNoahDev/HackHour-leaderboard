@@ -3,25 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add User</title>
-    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <title>Leaderboard</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto p-4">
-        <h1 class="text-3xl font-bold mb-4">Add User</h1>
-        <form action="{{ url_for('add_user') }}" method="POST">
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="slack_id">Slack ID</label>
-                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="slack_id" name="slack_id" type="text" required>
-            </div>
-            <div class="mb-6">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="username">Username</label>
-                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="username" name="username" type="text" required>
-            </div>
-            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
-                Add User
-            </button>
-        </form>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-3xl font-bold text-center mb-8">Leaderboard</h1>
+        
+
+        <div id="leaderboard" class="space-y-4"></div>
+        
+
+        <div id="loader" class="text-center py-4">
+            <svg class="animate-spin h-8 w-8 mx-auto my-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A8.001 8.001 0 0112 4.472v3.08a4.001 4.001 0 00-4 4l.001.739zm10-7.956a8.053 8.053 0 00-1.333-4.456 1.002 1.002 0 00-1.664 1.112A6.05 6.05 0 0117.05 11H14v2h3.05a6.05 6.05 0 011.953 3.3 1.002 1.002 0 001.664 1.112 8.053 8.053 0 001.333-4.456z"></path>
+            </svg>
+        </div>
     </div>
+
+
+    <script>
+        async function fetchLeaderboardData(keyset = null) {
+            const url = keyset ? `https://leaderboard.imnoah.com/api/leaderboard?cursor=${keyset}` : 'https://leaderboard.imnoah.com/api/leaderboard';
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                return null;
+            }
+        }
+
+        async function renderLeaderboard() {
+            const leaderboardContainer = document.getElementById('leaderboard');
+            const loader = document.getElementById('loader');
+            
+
+            loader.style.display = 'block';
+            
+
+            const data = await fetchLeaderboardData();
+            
+
+            loader.style.display = 'none';
+            
+            if (data && data.results) {
+
+                data.results.forEach(entry => {
+                    const profilePicture = entry.profile_picture;
+                    const realName = entry.real_name;
+                    const tickets = entry.tickets;
+
+                    const entryHTML = `
+                        <div class="flex items-center p-4 bg-white shadow-md rounded-lg">
+                            <img src="${profilePicture}" alt="${realName}'s Profile Picture" class="w-12 h-12 rounded-full mr-4">
+                            <div>
+                                <p class="text-lg font-semibold">${realName}</p>
+                                <p class="text-gray-600">${tickets} tickets</p>
+                            </div>
+                        </div>
+                    `;
+                    
+
+                    leaderboardContainer.innerHTML += entryHTML;
+                });
+            }
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderLeaderboard();
+        });
+
+        window.addEventListener('scroll', async () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+                const lastEntry = document.querySelector('#leaderboard > div:last-child');
+                if (lastEntry) {
+                    const lastEntryId = lastEntry.id;
+                    await renderLeaderboard(lastEntryId);
+                }
+            }
+        });
+    </script>
 </body>
 </html>
