@@ -165,19 +165,18 @@ const api = new Logger("hackhour-leaderboard","API",{
     }
 )
 
-app.get("/ping", (req, res) => {
+app.get("/api/ping", (req, res) => {
     res.send("pong");
 });
 
-app.get("/leaderboard/place/:id", (req, res) => {
+app.get("/api/leaderboard/rank/:id", (req, res) => {
     const id = req.params.id
-    if (id == "") return res.error(400);
+    if (id == "") return res.error(400); 
     api.log("Getting leaderboard place for",id)
 
     const unix = db.query(`
-        SELECT unix from tickets ORDER BY unix DESC
-        `
-    ).get()
+        SELECT unix from tickets ORDER BY unix DESC`
+    ).get().unix
 
     api.debug("DB Latest unix",unix)
     
@@ -196,7 +195,43 @@ app.get("/leaderboard/place/:id", (req, res) => {
     res.send(data);
 });
 
+app.get("/api/leaderboard", (req, res) => {
+    const cursor = req.query.next_cursor
 
+    api.log("Getting leaderboard data with cursor", cursor)
+
+    const unix = db.query(`
+        SELECT unix from tickets ORDER BY unix DESC`
+    ).get().unix
+
+    api.debug("DB Latest unix",unix)
+    
+    if (cursor == null) { // No cursor
+    
+
+
+        return res.send()
+    }
+
+
+    // We have a cursor here
+
+    api.log("test")
+
+    // const data = db.query(`
+    //     WITH RankedScores AS (
+    //         SELECT unix, user, sessions, minutes, RANK() OVER (ORDER BY minutes DESC) AS rank
+    //         FROM tickets WHERE unix = $unix
+    //     )
+    //     SELECT unix, user, sessions, minutes, rank
+    //     FROM RankedScores
+    //     WHERE user = $id;`)
+    //     .get({ $unix:unix, $id: id})
+    
+    // api.debug("DB result",data)
+    
+    res.send(cursor);
+});
 
 
 

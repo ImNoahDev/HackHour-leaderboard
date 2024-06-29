@@ -1,0 +1,39 @@
+-- database: ./db.sqlite
+
+-- Use the ▷ button in the top right corner to run the entire file.
+
+SELECT * FROM tickets
+WHERE unix = 1719655200
+ORDER BY minutes DESC;
+
+
+SELECT users.id, sessions, minutes, users.realname, users.displayname, users.avatar, users.tz 
+FROM tickets
+LEFT JOIN users ON tickets.user=users.id
+WHERE unix = 1719655200
+ORDER BY minutes DESC;
+
+SELECT ROWID FROM users;
+
+
+SELECT * FROM users LEFT JOIN tickets ON users.id = tickets.user WHERE users.id = U0511S72BHP;
+
+
+SELECT * FROM users WHERE id = U079Z52J6AH;
+
+
+
+SELECT tz, COUNT(*) AS count
+FROM users
+GROUP BY tz
+ORDER BY count DESC;
+
+
+-- FIND USER RANK
+WITH RankedScores AS (
+    SELECT user, minutes, DENSE_RANK() OVER (ORDER BY minutes DESC) AS rank
+    FROM tickets WHERE unix = 1719655200
+)
+SELECT user, minutes, rank
+FROM RankedScores
+WHERE user = 'U0799517M26';
