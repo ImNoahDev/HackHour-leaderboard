@@ -7,7 +7,6 @@
     <!-- Include Tailwind CSS with dark mode via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/custom-forms"></script>
-    <link rel="stylesheet" href="/public/index.css">
     <style>
         /* Enable dark mode */
         @media (prefers-color-scheme: dark) {
@@ -20,9 +19,11 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 p-6">
+<body class="bg-gray-100 dark:bg-gray-900 p-6" onload="loadSequence()">
     <div class="max-w-3xl mx-auto">
         <h1 class="text-3xl font-bold text-center mb-8 dark:text-gray-300">Arcade Leaderboard</h1>
+
+        <div>Active Sessions: </div>
         
         <!-- Container for leaderboard entries -->
         <div id="leaderboard" class="space-y-4"></div>
@@ -40,6 +41,13 @@
     <script>
         let nextCursor = null;
         let isLoading = false;
+        
+        let fullWidthState = null;
+
+        function refreshSessions(){
+            // TODO
+        }
+
 
         async function fetchLeaderboardData() {
             const url = nextCursor ? `/api/leaderboard?next_cursor=${nextCursor}` : '/api/leaderboard';
@@ -84,30 +92,44 @@
                 // Render leaderboard entries
                 data.leaderboard.forEach(entry => {
                     const uId = entry.id;
-                    const profilePicture = entry.avatar;
-                    const realName = entry.realname;
-                    const displayName = entry.displayname || realName;
+                    let profilePicture = entry.avatar;
+                    let realName = entry.realname;
+                    let displayName = entry.displayname || realName;
+                    realName = realName;
                     const sessions = entry.sessions;
                     const minutes = entry.minutes;
                     const rank = entry.rank;
                     let timeZone = entry.tz;
-                    let currentTime 
-                    let formattedTime 
+                    if (timeZone) {
+                        timeZone = timeZone.replace(/_/g, ' ').replace(/\//g, ', ').split(', ').reverse().join(', ');
+                    }
+                    if (!profilePicture) {
+                        profilePicture = '/public/nullimage.jpg';
+                    }
+                    if (!timeZone) {
+                        timeZone = 'Error with user data';
+                    }
+                    let nullcolor = 'bg-gray-800'
+                    if (realName === null && displayName === null) {
+                        nullcolor = 'bg-red-800'
+                        realName = 'Error with user data'
+                        displayName = 'Error with user data'
+                    }
                     // Create entry HTML
                     const entryHTML = `
-                        <div class="flex items-center p-4 bg-white dark:bg-gray-800 shadow-md rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                        <div class="flex items-center p-4 bg-white dark:${nullcolor} shadow-md rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300">
                             <a href="https://hackclub.slack.com/team/${uId}" target="_blank" rel="noreferrer noopener" >
                                 <div class="flex items-center space-x-4">
                                     <span class="text-2xl font-bold text-gray-700 dark:text-gray-300">${rank}.</span>
                                     <img src="${profilePicture}" alt="${realName}'s Profile Picture" class="w-12 h-12 rounded-xl">
                                     <div>
-                                        <p class="text-lg font-semibold dark:text-gray-300">@${displayName}</p>
-                                        <p class="text-gray-600 dark:text-gray-400">${realName}</p>
+                                        <p class="text-lg font-semibold dark:text-gray-300">${displayName}</p>
+                                        <p class="text-gray-600 dark:text-gray-400">@${realName}</p>
                                     </div>
                                 </div>
                             </a>
 
-                            <div class=" ml-8 text-center bg-gray-600 px-2 py-1 rounded-xl">
+                            <div class="tz ml-8 text-center bg-gray-600 px-2 py-1 rounded-xl">
                                 <p class="text-gray-600 dark:text-gray-300 font-bold">${timeZone}</p>
                             </div>
 
@@ -140,6 +162,48 @@
                 }
             }
         });
+        
+        window.addEventListener("resize", changeSizeOfTZ)
+
+        async function changeSizeOfTZ(){
+            if (window.innerWidth < 650){
+                if (fullWidthState) {
+                    var elements = document.getElementsByClassName('tz');
+        
+                    for (var i = 0; i < elements.length; i++) {
+                        elements[i].style.display = 'none';
+                    }
+                }
+                fullWidthState = false
+            } else {
+                if (!fullWidthState) {
+                    var elements = document.getElementsByClassName('tz');
+        
+                    for (var i = 0; i < elements.length; i++) {
+                        elements[i].style.display = 'block';
+                    }
+                }
+                fullWidthState = true
+            }
+        }
+
+        async function loadSequence(){
+            if (window.innerWidth < 650){
+                var elements = document.getElementsByClassName('tz');
+    
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].style.display = 'none';
+                }
+                fullWidthState = false
+            } else {
+                var elements = document.getElementsByClassName('tz');
+    
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].style.display = 'block';
+                }
+                fullWidthState = true
+            }
+        }
 
     </script>
 </body>

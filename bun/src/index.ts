@@ -165,11 +165,9 @@ async function fullUserListUpdate() {
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname,"./views/index.html"))
 })
-
-app.get("/public/index.css", (req, res) => {
-    res.sendFile(path.join(__dirname,"./views/index.css"))
+app.get("/public/nullimage.jpg", (req, res) => {
+    res.sendFile(path.join(__dirname,"./views/nullimage.jpg"))
 })
-
 
 // * API
 const api = new Logger("hackhour-leaderboard","API",{
@@ -249,6 +247,8 @@ app.get("/api/leaderboard", (req, res) => {
         .all({
             $cursor: startPage - 1
         })
+
+    api.debug("Data gotten from DB")
 
     let out = {
         next_cursor: jwt.sign({sub: "/leaderboard", exp:  Math.floor(Date.now() / 1000) + 1800 , next_cursor: startPage + 50},JWT_PK),
