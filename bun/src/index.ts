@@ -186,6 +186,17 @@ app.get("/api/ping", (req, res) => {
     res.send("pong");
 });
 
+app.get("/api/sessions", async (req,res) => {
+    try {
+        let response = await fetch("https://hackhour.hackclub.com/status")
+        let data = await response.json()
+        res.send({sessions: data.activeSessions})
+    } catch (error) {
+        res.send({error: error})
+    }
+    
+})
+
 app.get("/api/leaderboard/rank/:id", (req, res) => {
     const id = req.params.id
     if (id == "") return res.error(400); 

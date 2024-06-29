@@ -19,14 +19,36 @@
         }
 
         .idn {display: none;}
+
+        @layer utilities {
+  .tie-dye-background {
+    background: 
+      radial-gradient(circle at 10% 20%, #ff7e5f, transparent 30%),
+      radial-gradient(circle at 30% 40%, #feb47b, transparent 30%),
+      radial-gradient(circle at 50% 60%, #86a8e7, transparent 30%),
+      radial-gradient(circle at 70% 80%, #8e44ad, transparent 30%),
+      radial-gradient(circle at 90% 20%, #3498db, transparent 30%),
+      radial-gradient(circle at 30% 70%, #2ecc71, transparent 30%),
+      radial-gradient(circle at 50% 20%, #f39c12, transparent 30%),
+      radial-gradient(circle at 70% 30%, #e74c3c, transparent 30%),
+      radial-gradient(circle at 20% 80%, #9b59b6, transparent 30%);
+    background-size: 200% 200%;
+    animation: tie-dye-animation 60s linear infinite;
+  }
+        }
+
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 p-6">
     <div class="max-w-3xl mx-auto">
         <h1 class="text-3xl font-bold text-center mb-8 dark:text-gray-300">Arcade Leaderboard</h1>
 
-        <div>Active Sessions: </div>
-        
+        <div class="bg-gray-800 p-2 rounded shadow-sm flex items-center space-x-2 mt-4 relative">
+            <span class="text-gray-400">Active Sessions:</span>
+            <span id="sessions" class="text-lg font-semibold text-white">Loading...</span>
+            <div class="absolute inset-x-0 bottom-0 border-b-2 border-gray-600"></div>
+        </div>
+        <hr style="height:10px; visibility:hidden;" />
         <!-- Container for leaderboard entries -->
         <div id="leaderboard" class="space-y-4"></div>
         
@@ -89,7 +111,9 @@
             const data = await fetchLeaderboardData();
 
             try {
-                powerUnix = await fetch("/api/leaderboard/winner").unix
+                let response = await fetch("/api/leaderboard/winner")
+                let data = await response.json()
+                powerUnix = data.unix
             } catch (error) {
                 console.error(error)
             }
@@ -123,7 +147,7 @@
                         timeZone = 'Error with user data';
                     }
                     if (realName === null && displayName === null) {
-                        nullcolor = 'bg-red-900'
+                        nullcolor = 'bg-gradient-to-r from-red-900 to-red-800'
                         timezoneColor = ''
                         timeZone = ""
                         realName = 'Error with user data'
@@ -131,9 +155,9 @@
                     }
 
                     if (rank == 1) {
-                        nullcolor = 'bg-amber-500'
+                        nullcolor = 'bg-gradient-to-r from-yellow-600 to-yellow-400'
                         textcolor = 'text-black'
-                        timezoneColor = 'bg-yellow-600'
+                        timezoneColor = 'shadow-2xl bg-yellow-500' 
                         ticketUrl = "public/blueTicket.png"
 
                     }
@@ -152,12 +176,17 @@
                                 </div>
                             </a>
 
-                            <div class="tz ml-8 text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                            
+                            ${
+                            rank == 1 ?  `<div style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz ml-8 text-center ${timezoneColor} px-2 py-1 rounded-xl">
                                 <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">${timeZone}</p>
-                            </div>
+                            </div>` : `<div class="tz ml-8 text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                                <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">${timeZone}</p>
+                            </div>`
+                            }
 
                             ${
-                            rank == 1 ?  `<div id="timer" class="tz ml-8 text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                            rank == 1 ?  `<div id="timer" style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz tie-dye-background ml-auto mr-2 font-bold text-center ${timezoneColor} px-2 py-1 rounded-xl">
                                 <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">0:0:0</p>
                             </div>` : ``
                             }
@@ -179,7 +208,8 @@
         // Load initial leaderboard when the page loads
         document.addEventListener('DOMContentLoaded', async () => {
             await renderLeaderboard();
-            loadSequence()            
+            loadSequence();
+                    
         });
 
         // Infinite scroll with keyset pagination
@@ -196,7 +226,7 @@
         window.addEventListener("resize", changeSizeOfTZ)
 
         async function changeSizeOfTZ(){
-            if (window.innerWidth < 650){
+            if (window.innerWidth < 700){
                 if (fullWidthState) {
                     var elements = document.getElementsByClassName('tz');
         
@@ -219,7 +249,7 @@
 
         async function loadSequence(){
             console.log("Loading")
-            if (window.innerWidth < 650){
+            if (window.innerWidth < 700){
                 var elements = document.getElementsByClassName('tz');
     
                 for (var i = 0; i < elements.length; i++) {
@@ -234,6 +264,8 @@
                 }
                 fullWidthState = true
             }
+            setInterval(updateTimer, 20000);
+            updateTimer()
         }
         
 
@@ -281,25 +313,41 @@
 
 
     
-        function updateTimer() {
-        unixDate = pofrwerUnix
-        // Get current Unix timestamp in seconds
-        const currentUnixTime = Math.floor(Date.now() / 1000);
-        
-        // Calculate the difference in seconds
-        const differenceInSeconds = currentUnixTime - unixDate;
-        
-        // Calculate days, hours, and minutes
-        const days = Math.floor(differenceInSeconds / (60 * 60 * 24));
-        const hours = Math.floor((differenceInSeconds % (60 * 60 * 24)) / (60 * 60));
-        const minutes = Math.floor((differenceInSeconds % (60 * 60)) / 60);
-        
-        // Update the timer display
-        document.getElementById('timer').textContent = `${days}:${hours}:${minutes}`;
-        }
+        async function updateTimer() {
+            unixDate = powerUnix
+            // Get current Unix timestamp in seconds
+            const currentUnixTime = Math.floor(Date.now() / 1000);
+            
+            // Calculate the difference in seconds
+            const differenceInSeconds = currentUnixTime - unixDate;
+            
+            // Calculate days, hours, and minutes
+            const days = Math.floor(differenceInSeconds / (60 * 60 * 24));
+            const hours = Math.floor((differenceInSeconds % (60 * 60 * 24)) / (60 * 60));
+            const minutes = Math.floor((differenceInSeconds % (60 * 60)) / 60);
+            
+            // Update the timer display
+            document.getElementById('timer').innerHTML = `In 1st place for: <br> ${days}d ${hours}h ${minutes}m`;
 
-        // Update the timer every second
-        setInterval(updateTimer, 1000);
+            try {
+                let response = await fetch("/api/sessions")
+                let data = await response.json()
+                console.log(data)
+                if (data.error) {
+                    throw Error("There was an error with the hack hour API")
+                    console.error(error)
+                }
+
+                document.getElementById("sessions").innerText = data.sessions
+                document.getElementById("sessions").className = "text-lg font-semibold text-white"
+        
+            } catch (error) {
+                document.getElementById("sessions").innerText = "Arcade API is down!"
+                document.getElementById("sessions").className = "text-lg font-semibold text-red-500"
+                console.error(error)
+            }
+        
+    }
 
     </script>
 </body>
