@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+    <!-- Include Tailwind CSS with dark mode via CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/custom-forms"></script>
+    <style>
+        /* Enable dark mode */
+        @media (prefers-color-scheme: dark) {
+            .dark\:bg-gray-900 { background-color: #1a202c; }
+            .dark\:bg-gray-800 { background-color: #2d3748; }
+            .dark\:bg-gray-700 { background-color: #4a5568; }
+            .dark\:text-gray-300 { color: #d1d5db; }
+            .dark\:text-gray-400 { color: #cbd5e0; }
+            .dark\:text-gray-500 { color: #a0aec0; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 p-6">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-3xl font-bold text-center mb-8 dark:text-gray-300">Arcade Leaderboard</h1>
+        
+        <!-- Container for leaderboard entries -->
+        <div id="leaderboard" class="space-y-4"></div>
+        
+        <!-- Loader when fetching data -->
+        <div id="loader" class="text-center py-4">
+            <svg class="animate-spin h-8 w-8 mx-auto my-4 text-gray-500 dark:text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A8.001 8.001 0 0112 4.472v3.08a4.001 4.001 0 00-4 4l.001.739zm10-7.956a8.053 8.053 0 00-1.333-4.456 1.002 1.002 0 00-1.664 1.112A6.05 6.05 0 0117.05 11H14v2h3.05a6.05 6.05 0 011.953 3.3 1.002 1.002 0 001.664 1.112 8.053 8.053 0 001.333-4.456z"></path>
+            </svg>
+        </div>
+    </div>
+
+    <!-- JavaScript for fetching leaderboard data and keyset pagination -->
+    <script>
+        let nextCursor = null;
+        let isLoading = false;
+
+        async function fetchLeaderboardData() {
+            const url = nextCursor ? `/api/leaderboard?cursor=${nextCursor}` : '/api/leaderboard';
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                const data = await response.json();
+
+                nextCursor = data.next_cursor
+
+                return data;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                nextCursor = null
+                return null;
+            }
+        }
+
+        function formatTimeIn12HourClock(date) {
+            let hours = date.getHours();
+            const minutes = date.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
+            const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+            return hours + ':' + minutesStr + ' ' + ampm;
+        }
+
+        async function renderLeaderboard() {
+            if (isLoading) return;
+            isLoading = true;
+
+            const leaderboardContainer = document.getElementById('leaderboard');
+            const loader = document.getElementById('loader');
+            
+            // Show loader while fetching data
+            loader.style.display = 'block';
+            
+            // Fetch leaderboard data
+            const data = await fetchLeaderboardData();
+            
+            // Hide loader after fetching data
+            loader.style.display = 'none';
+            isLoading = false;
+            
+            if (data && data.leaderboard) {
+                // Render leaderboard entries
+                data.leaderboard.forEach(entry => {
+                    const profilePicture = entry.avatar;
+                    const realName = entry.realname;
+                    const displayName = entry.displayname || realName;
+                    const sessions = entry.sessions;
+                    const minutes = entry.minutes;
+                    const rank = entry.rank;
+                    const timeZone = entry.tz;
+                    const currentTime = new Date().toLocaleString("en-US", { timeZone });
+                    const formattedTime = formatTimeIn12HourClock(new Date(currentTime));
+                    // Create entry HTML
+                    const entryHTML = `
+                        <div class="flex items-center justify-between p-4 bg-white dark:bg-gray-800 shadow-md rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <span class="text-lg font-bold text-gray-700 dark:text-gray-300">${rank}.</span>
+                                <img src="${profilePicture}" alt="${realName}'s Profile Picture" class="w-12 h-12 rounded-xl">
+                                <div>
+                                    <p class="text-lg font-semibold dark:text-gray-300">@${displayName}</p>
+                                    <p class="text-gray-600 dark:text-gray-400">${realName}</p>
+                                    <p class="text-gray-600 dark:text-gray-400">${sessions} sessions</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-center flex-grow">
+                                <div class="text-center">
+                                    <p class="text-gray-600 dark:text-gray-400 font-bold">${timeZone.replace(/_/g, ' ').replace(/\//g, ', ')}</p>
+                                    <p class="text-gray-600 dark:text-gray-400">${formattedTime}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <p class="text-2xl font-bold text-gray-700 dark:text-gray-300">${sessions}</p>
+                                <img src="https://emoji.slack-edge.com/T0266FRGM/tw_admission_tickets/cab11d6f34ffab2d.png" alt="Ticket Icon" class="w-8 h-8">
+                            </div>
+                        </div>
+                    `;
+
+
+                    // Append entry to leaderboard container
+                    leaderboardContainer.innerHTML += entryHTML;
+
+                    // Update time immediately and start interval for live update
+                    updateTime(entry.id, timeZone);
+                    setInterval(() => updateTime(entry.id, timeZone), 60000); // Update every minute
+                });
+
+                // Update next cursor
+                nextCursor = data.next_cursor;
+            }
+        }
+
+        function updateTime() {
+    // Start updating time every minute
+    setInterval(() => {
+        const entries = document.querySelectorAll('.leaderboard-entry'); // Assuming each entry has a class 'leaderboard-entry'
+        entries.forEach(entry => {
+            const currentTimeElement = entry.querySelector('.current-time');
+            if (currentTimeElement) {
+                const currentTime = new Date();
+                const formattedTime = formatTimeIn12HourClock(currentTime);
+                currentTimeElement.textContent = formattedTime;
+            }
+        });
+    }, 60000); // Update every minute (60000 milliseconds)
+}
+
+        // Load initial leaderboard when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            renderLeaderboard();
+        });
+
+        // Infinite scroll with keyset pagination
+        window.addEventListener('scroll', async () => {
+            if (window.innerHeight + window.scrollY + 200 >= document.body.offsetHeight) {
+                console.log("Trying to load more data")
+                console.log(nextCursor)
+                if (nextCursor) {
+                    await renderLeaderboard(nextCursor);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

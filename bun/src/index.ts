@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import Logger from "louis-log"
 import schedule from "node-schedule"
 import jwt from "jsonwebtoken"
+import path from "path"
 
 const JWT_PK = process.env.JWT_PRIVATE_KEY
 
@@ -159,6 +160,14 @@ async function fullUserListUpdate() {
 
 // fullUserListUpdate()
 
+// * VIEWS
+
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname,"./views/index.html"))
+})
+
+
+// * API
 const api = new Logger("hackhour-leaderboard","API",{
     logWebook:  {
         enable: true, 
