@@ -13,6 +13,13 @@ const logger = new Logger("hackhour-leaderboard","index",{
     }
     }
 )
+
+import express from "express";
+
+const app = express();
+const port = 8080;
+
+
 logger.success("Entered Index")
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -31,7 +38,7 @@ logger.debug(db.query("select 'hello world' as message").get())
 // schedule.scheduleJob('*/20 * * * * *', updateUserList );
 
 
-  async function updateTicketCount(){
+async function updateTicketCount(){
     const currentTime = Math.floor(new Date().getTime() / 1000)
 
     logger.log("Starting Ticket Count Update Process")
@@ -107,9 +114,9 @@ async function fullUserListUpdate() {
                     userdata = await getUserInfo(members[member].id)
                 } catch (error) {
                     logger.fatal("There was an issue connecting to slack for attempt 2", members[member].id)
+                    await sleep(45000)
                 }
             }
-
 
             if (userdata == undefined) {
                 logger.error("No data from slack", members[member].id)
@@ -147,4 +154,56 @@ async function fullUserListUpdate() {
     }
 }
 
-fullUserListUpdate()
+// fullUserListUpdate()
+
+const api = new Logger("hackhour-leaderboard","API",{
+    logWebook:  {
+        enable: true, 
+        url: process.env.DISCORD_WEBHOOK, 
+        form: "discord"
+    }
+    }
+)
+
+app.get("/ping", (req, res) => {
+    res.send("pong");
+});
+
+app.get("/leaderboard/place/:id", (req, res) => {
+    const id = req.params.id
+    if (id == "") return res.error(400);
+    api.log("Getting leaderboard place for",id)
+
+    const unix = db.query(`
+        SELECT unix from tickets ORDER BY unix DESC
+        `
+    ).get()
+
+    api.debug("DB Latest unix",unix)
+    
+    const data = db.query(`
+        WITH RankedScores AS (
+            SELECT unix, user, sessions, minutes, RANK() OVER (ORDER BY minutes DESC) AS rank
+            FROM tickets WHERE unix = $unix
+        )
+        SELECT unix, user, sessions, minutes, rank
+        FROM RankedScores
+        WHERE user = $id;`)
+        .get({ $unix:unix, $id: id})
+    
+    api.debug("DB result",data)
+    
+    res.send(data);
+});
+
+
+
+
+
+
+
+
+
+app.listen(port, () => {
+    console.log(`Listening on port ${port}...`);
+});
