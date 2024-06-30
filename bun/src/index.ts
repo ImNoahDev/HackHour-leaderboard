@@ -3,6 +3,7 @@ import Logger from "louis-log"
 import schedule from "node-schedule"
 import jwt from "jsonwebtoken"
 import path from "path"
+import { rateLimit } from 'express-rate-limit'
 
 const JWT_PK = process.env.JWT_PRIVATE_KEY
 
@@ -23,6 +24,27 @@ import express from "express";
 const app = express();
 const port = 8080;
 
+const limit100 = rateLimit({
+	windowMs: 1 * 60 * 1000, // 1 minute
+	limit: 50, 
+	standardHeaders: 'draft-7', 
+	legacyHeaders: false, 
+    message: 'You can only make 50 requests every minute.'
+})
+const limit50 = rateLimit({
+	windowMs: 1 * 60 * 1000, // 1 minute
+	limit: 50, 
+	standardHeaders: 'draft-7', 
+	legacyHeaders: false, 
+    message: 'You can only make 50 requests every minute.'
+})
+const limit20 = rateLimit({
+	windowMs: 1 * 60 * 1000, // 1 minute
+	limit: 20, 
+	standardHeaders: 'draft-7', 
+	legacyHeaders: false, 
+    message: 'You can only make 20 requests every minute.'
+})
 
 logger.success("Entered Index")
 
@@ -162,13 +184,13 @@ async function fullUserListUpdate() {
 
 // * VIEWS
 
-app.get("/", (req, res) => {
+app.get("/",limit50, (req, res) => {
     res.sendFile(path.join(__dirname,"./views/index.html"))
 })
-app.get("/public/nullimage.jpg", (req, res) => {
+app.get("/public/nullimage.jpg",limit50, (req, res) => {
     res.sendFile(path.join(__dirname,"./views/nullimage.jpg"))
 })
-app.get("/public/blueTicket.png", (req, res) => {
+app.get("/public/blueTicket.png",limit50, (req, res) => {
     res.sendFile(path.join(__dirname,"./views/blueTicket.png"))
 })
 
@@ -182,11 +204,11 @@ const api = new Logger("hackhour-leaderboard","API",{
     }
 )
 
-app.get("/api/ping", (req, res) => {
+app.get("/api/ping",limit100, (req, res) => {
     res.send("pong");
 });
 
-app.get("/api/sessions", async (req,res) => {
+app.get("/api/sessions",limit100, async (req,res) => {
     try {
         let response = await fetch("https://hackhour.hackclub.com/status")
         let data = await response.json()
@@ -197,7 +219,7 @@ app.get("/api/sessions", async (req,res) => {
     
 })
 
-app.get("/api/leaderboard/rank/:id", (req, res) => {
+app.get("/api/leaderboard/rank/:id",limit20, (req, res) => {
     const id = req.params.id
     if (id == "") return res.error(400); 
     api.log("Getting leaderboard place for",id)
@@ -223,7 +245,7 @@ app.get("/api/leaderboard/rank/:id", (req, res) => {
     res.send(data);
 });
 
-app.get("/api/leaderboard", (req, res) => {
+app.get("/api/leaderboard",limit20, (req, res) => {
     const cursor = req.query.next_cursor
 
     api.log("Getting leaderboard data with cursor", cursor)
@@ -274,7 +296,7 @@ app.get("/api/leaderboard", (req, res) => {
 
 });
 
-app.get("/api/leaderboard/winner", (req, res) => {
+app.get("/api/leaderboard/winner",limit20, (req, res) => {
     
 
     const winners = db.query(

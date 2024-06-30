@@ -41,6 +41,10 @@
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 p-6">
     <div class="max-w-3xl mx-auto">
+        <div class="rate-banner bg-gradient-to-r from-red-900 to-red-800 p-2 rounded shadow-sm flex items-center space-x-2 mt-4 relative font-bold text-gray-300 text-center text-3xl p-10 mx-2 my-10">
+            You are being rate limited, please slow down!
+        </div>
+
         <h1 class="text-3xl font-bold text-center mb-8 dark:text-gray-300">Arcade Leaderboard</h1>
 
         <div class="bg-gray-800 p-2 rounded shadow-sm flex items-center space-x-2 mt-4 relative">
@@ -60,6 +64,33 @@
             </svg>
         </div>
     </div>
+<!-- Footer -->
+<footer class="bg-gray-800 text-white py-2 fixed bottom-0 left-0 right-0 w-full mt-4">
+    <div class="container mx-auto px-4">
+        <div class="flex flex-col sm:flex-row items-center sm:space-x-4 px-2 sm:px-0">
+            <!-- Credits Section -->
+            <div class="flex items-center space-x-2">
+                <a href="https://github.com/Bilbo1Gaming" class="flex items-center space-x-1 hover:text-gray-400">
+                    <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo" class="w-4 h-4 rounded-full">
+                    <span class="text-xs">Bilbo1Gaming (ImLouis)</span>
+                </a>
+                <a href="https://github.com/ImNoahDev" class="flex items-center space-x-1 hover:text-gray-400">
+                    <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo" class="w-4 h-4 rounded-full">
+                    <span class="text-xs">ImNoahDev</span>
+                </a>
+            </div>
+            <!-- Centered Rights Reserved -->
+            <div class="flex items-center justify-center text-xs mt-2 sm:mt-0 flex-grow">
+                <p>&copy; 2024 ImLouis and ImNoahDev. All rights reserved.</p>
+            </div>
+            <!-- Website Links -->
+            <div class="flex items-center space-x-2 mt-2 sm:mt-0">
+                <a href="https://www.imnoah.com" class="text-xs hover:text-gray-400">ImNoah.com</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
 
     <!-- JavaScript for fetching leaderboard data and keyset pagination -->
     <script>
@@ -350,5 +381,7 @@
     }
 
     </script>
+
 </body>
+
 </html>
