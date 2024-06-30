@@ -10,6 +10,7 @@ const JWT_PK = process.env.JWT_PRIVATE_KEY
 
 import { getUserInfo, getAllChannelMembers } from "./utils/getUsers"
 import { getStatsForUser } from "./utils/getHack";
+import  {router}  from "./utils/slackBot"
 
 const logger = new Logger("hackhour-leaderboard","index",{
     logWebook:  {
@@ -186,12 +187,19 @@ async function fullUserListUpdate() {
 // fullUserListUpdate()
 
 // * SLACK BOT
+<<<<<<< HEAD
 import  {slackRouter}  from "./utils/slackBot"
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Mount the Slack events router
 app.use('/slack', slackRouter);
+=======
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Mount the Slack events router
+app.use('/slack/events', router);
+>>>>>>> 2e8045a2bab37c3fd514b3eb0eb28e944e9cdf46
 
 // * VIEWS
 

@@ -52,6 +52,8 @@
         <div class="bg-gray-800 p-2 rounded shadow-sm flex items-center space-x-2 mt-4 relative">
             <span class="text-gray-400">Active Sessions:</span>
             <span id="sessions" class="text-lg font-semibold text-white">Loading...</span>
+            <span class="text-gray-400">Your rank:</span>
+  <span id="sessions" class="text-lg font-semibold text-white"></span>
             <div class="absolute inset-x-0 bottom-0 border-b-2 border-gray-600"></div>
             
         </div>
@@ -118,7 +120,10 @@
                 const response = await fetch(url);
                 if (response.status == 429) {
                     bannerTimer += 20
+<<<<<<< HEAD
                     updateBanner()
+=======
+>>>>>>> 2e8045a2bab37c3fd514b3eb0eb28e944e9cdf46
                     throw new Error('Rate Limit getting leaderboard');
                 }
                 if (!response.ok) {
@@ -152,6 +157,7 @@
             // Fetch leaderboard data
             try {
                 data = await fetchLeaderboardData();
+<<<<<<< HEAD
                 if (data == null){
                     throw new Error('Error getting Leaderboard data');
                 }
@@ -160,6 +166,11 @@
                 console.error(error)
                 isLoading = false;
 
+=======
+            } catch (error) {
+
+                console.error(error)
+>>>>>>> 2e8045a2bab37c3fd514b3eb0eb28e944e9cdf46
                 return
             }
 
@@ -381,7 +392,10 @@
         async function updateBanner(){
             if(bannerTimer > 0){
                 document.getElementById("rate-banner").style.display = "block"
+<<<<<<< HEAD
                 document.getElementById("rate-time").innerText = bannerTimer
+=======
+>>>>>>> 2e8045a2bab37c3fd514b3eb0eb28e944e9cdf46
                 bannerTimer = bannerTimer - 1
             } else {
                 document.getElementById("rate-banner").style.display = "none"
