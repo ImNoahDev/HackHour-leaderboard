@@ -2,7 +2,7 @@
 import Logger from "louis-log";
 
 // Initialize the logger
-const logger = new Logger("hackhour-leaderboard", "leaderbot", {
+const logger = new Logger("hackhour-leaderboard", "getUsers", {
     logWebook: {
         enable: true,
         url: process.env.DISCORD_WEBHOOK,
@@ -70,8 +70,8 @@ export async function getAllChannelMembers() {
       }
     } while (cursor);
 
-    logger.log(`User IDs in channel ${channelId}:`);
-    logger.log("members:",allMembers);
+    logger.debug(`User IDs in channel ${channelId}:`);
+    logger.debug("members:",allMembers);
     logger.debug("members count:",allMembers.length)
     return allMembers;
   } catch (error) {

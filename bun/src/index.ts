@@ -67,7 +67,7 @@ logger.debug(db.query("select 'hello world' as message").get())
 // schedule.scheduleJob('0 20 */2 * * *', updateUserList );
 // schedule.scheduleJob('0 40 0 * * *', fullUserListUpdate);
 
-updateTicketCount()
+// fullUserListUpdate()
 
 async function updateTicketCount(){
     try {
@@ -84,6 +84,7 @@ async function updateTicketCount(){
         const insertTickets =  db.transaction( async ()=> {
             for (const member in members) {
                 await sleep(20)
+                if (member % 50 == 0) logger.log("Ticket Update progess",`${member}/${members.length}`)
                 let stats = await getStatsForUser(members[member].id)
                 logger.debug(stats)
                 if (stats == null) continue;
@@ -100,11 +101,14 @@ async function updateTicketCount(){
         })
 
         await insertTickets()
+
+        db.query("INSERT INTO ticketBatches (unix) VALUES ($unix)").run({$unix: currentTime})
+
         logger.success("Ticket update process complete!")
 
         logger.log("Updating winners list")
         const unix = await db.query(`
-            SELECT unix from tickets ORDER BY unix DESC`
+            SELECT unix from ticketBatches ORDER BY unix DESC`
         ).get().unix
     
         api.debug("DB Latest unix",unix)
@@ -135,13 +139,14 @@ async function updateTicketCount(){
     
 
     } catch (error) {
-        logger.fatal("There was an issue with Updating ticket counts", updateTicketCount())
+        logger.fatal("There was an issue with Updating ticket counts")
     }
     
 }
   
 async function updateUserList(){
-    logger.log("Starting Update User List Process")
+    try {
+        logger.log("Starting Update User List Process")
 
     const members = await getAllChannelMembers()
     // logger.debug("Member list:",members)
@@ -153,89 +158,59 @@ async function updateUserList(){
     });
 
     await insertUsers(members);
-      
+
+    logger.success("Updated User List, New count", members.length)
+    } catch (error) {
+        logger.fatal("There was an error in the update user list process", error)
+    }
 }
 
 async function fullUserListUpdate() {
     try {
         logger.log("Starting full user update")
 
-        const members = db.query("SELECT id FROM users").all() 
 
-        logger.debug("Member Count from DB:", members.length)
-
-        let delayCounter = 0
-
-        const updateUser = db.prepare("UPDATE users SET  realname=$realname , displayname=$displayname , avatar=$avatar, tz=$tz WHERE id = $id")
-        const updateUsers = db.transaction( async () => {
-            for (const member in members) {
-                try {
-                    delayCounter += 1
-    
-                if (delayCounter > 500) {
-                    logger.log("Waiting 45 seconds in slack full user update")
-                    await sleep (45000)
-                    delayCounter = 0
-                }
-
-                if (delayCounter % 50 == 0) logger.log("Slack Update progess",`${member}/${members.length}`)
-    
-                await sleep(50)
-                
-                let userdata 
-    
-                try {
-                    userdata = await getUserInfo(members[member].id)
-                } catch (error) {
-                    logger.error("There was an issue getting data from slack, waiting 45 seconds and trying again",members[member].id)
-                    await sleep(45000)
-                    try {
-                        userdata = await getUserInfo(members[member].id)
-                    } catch (error) {
-                        logger.fatal("There was an issue connecting to slack for attempt 2", members[member].id)
-                        await sleep(60000)
-                    }
-                }
-    
-                if (userdata == undefined) {
-                    logger.error("No data from slack", members[member].id)
-                    continue
-                }
-                
-                if (userdata.error == "user_not_found") {
-                    logger.error("Slack user in DB but no data", members[member].id)
-                    continue
-                };
+        // const updateUser = db.prepare("UPDATE users SET  realname=$realname , displayname=$displayname , avatar=$avatar, tz=$tz WHERE id = $id")
         
-                if (userdata.ok != true) {
-                    logger.error("Error getting slack info for user", members[member].id)
-                    continue
-                };
-    
-                logger.debug("Saving to DB",members[member].id)
-                updateUser.run({
-                    $id: members[member].id,
-                    $realname: userdata.user.profile.real_name,
-                    $displayname: userdata.user.profile.display_name,
-                    $avatar: userdata.user.profile.image_48,
-                    $tz: userdata.user.tz
-                })
-                } catch (error) {
-                    logger.error("Error Updating full user", {member: members[member].id, error: error})
-                }
-    
+        let allMembers: string[] = [];
+        let cursor = '';
+
+        try {
+            do {
+            const url = `https://slack.com/api/users.list?limit=50&cursor=${cursor}`;
+
+            const response = await fetch(url, {
+                headers: {
+                Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                allMembers.push(...data.members);
+
+                // Check if there are more members to fetch
+                cursor = data.response_metadata.next_cursor || '';
+            } else {
+                logger.error('Error fetching channel members:', await response.text());
+                break;
             }
-        })
+            } while (cursor);
 
-        await updateUsers()
-        logger.success("Finished full updating all slack users")
-        
+            logger.debug(`User IDs in channel ${channelId}:`);
+            logger.debug("members:",allMembers);
+            logger.debug("members count:",allMembers.length)
+            return allMembers;
+        } catch (error) {
+            logger.error('An error occurred:', error);
+            return [];
+        }
+
     } catch (error) {
         logger.error("Error in updating of all full users from slack", error)
     }
 }
 
-// fullUserListUpdate()
 
 // * SLACK BOT
 import  {slackRouter}  from "./utils/slackBot"
@@ -291,7 +266,7 @@ app.get("/api/leaderboard/rank/:id",limit25, (req, res) => {
     api.log("Getting leaderboard place for",id)
 
     const unix = db.query(`
-        SELECT unix from tickets ORDER BY unix DESC`
+        SELECT unix from ticketBatches ORDER BY unix DESC`
     ).get().unix
 
     api.debug("DB Latest unix",unix)
@@ -311,13 +286,29 @@ app.get("/api/leaderboard/rank/:id",limit25, (req, res) => {
     res.send(data);
 });
 
+app.get("/api/user/:id",limit25, (req, res) => {
+    const id = req.params.id
+    if (id == "") return res.error(400); 
+    api.log("Getting user data for",id)
+    
+    const data = db.query(`
+        SELECT id, realname, displayname, avatar, tz
+        FROM users
+        WHERE id = $id;`)
+        .get({ $id: id })
+    
+    api.debug("DB result",data)
+    
+    res.send(data);
+});
+
 app.get("/api/leaderboard",limit25, (req, res) => {
     const cursor = req.query.next_cursor
 
     api.log("Getting leaderboard data with cursor", cursor)
 
     const unix = db.query(`
-        SELECT unix from tickets ORDER BY unix DESC`
+        SELECT unix from ticketBatches ORDER BY unix DESC`
     ).get().unix
 
     api.debug("DB Latest unix",unix)
