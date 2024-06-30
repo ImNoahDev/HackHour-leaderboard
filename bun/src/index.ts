@@ -13,10 +13,16 @@ import { getStatsForUser } from "./utils/getHack";
 
 const logger = new Logger("hackhour-leaderboard","index")
 
+const important = new Logger("hackhour-leaderboard","IMPORTANT",{
+    enable: true,
+    url: process.env.DISCORD_WEBHOOK,
+    form: "discord"
+})
+
 import express from "express";
 
 const app = express();
-const port = 8080;
+const port = 8000;
 
 app.set('trust proxy', 3)
 
@@ -43,6 +49,7 @@ const limit25 = rateLimit({
 })
 
 logger.success("Entered Index")
+important.success("Server is starting...")
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -62,7 +69,7 @@ logger.debug(db.query("select 'hello world' as message").get())
 // schedule.scheduleJob('0 40 0 * * *', fullUserListUpdate);
 schedule.scheduleJob("0 * * * * *", updateActiveSessionCount);
 
-fullUserListUpdate()
+// fullUserListUpdate()
 
 async function updateActiveSessionCount() {
     try {
@@ -77,6 +84,7 @@ async function updateActiveSessionCount() {
         })
         
         logger.success("Updated active session count",data.activeSessions)
+        important.success("Updated active session count",data.activeSessions)
     } catch (error) {
         api.error("There was an issue updating the count of active sessions",error)
     }
@@ -84,6 +92,7 @@ async function updateActiveSessionCount() {
 
 async function updateTicketCount(){
     try {
+        important.log("Starting Ticket count")
         const currentTime = Math.floor(new Date().getTime() / 1000)
 
         logger.log("Starting Ticket Count Update Process")
@@ -118,6 +127,7 @@ async function updateTicketCount(){
         db.query("INSERT INTO ticketBatches (unix) VALUES ($unix)").run({$unix: currentTime})
 
         logger.success("Ticket update process complete!")
+        important.success("Ticket count successful")
 
         logger.log("Updating winners list")
         const unix = await db.query(`
@@ -149,6 +159,7 @@ async function updateTicketCount(){
             })
 
         logger.success("Winner sucessfully added")
+        important.success("Winner sucessfully added")
     
 
     } catch (error) {
@@ -160,6 +171,7 @@ async function updateTicketCount(){
 async function updateUserList(){
     try {
         logger.log("Starting Update User List Process")
+
 
     const members = await getAllChannelMembers()
     // logger.debug("Member list:",members)
@@ -173,6 +185,7 @@ async function updateUserList(){
     await insertUsers(members);
 
     logger.success("Updated User List, New count", members.length)
+    important.success("Updated User List, New count", members.length)
     } catch (error) {
         logger.fatal("There was an error in the update user list process", error)
     }
@@ -181,16 +194,19 @@ async function updateUserList(){
 async function fullUserListUpdate() {
     try {
         logger.log("Starting full user update")
+        important.log("Starting full user update")
 
 
         // const updateUser = db.prepare()
         
         let cursor = '';
 
+        let count = 0
+
         try {
             do {
                 await sleep(4000)
-            const url = `https://slack.com/api/users.list?limit=150&cursor=${cursor}`;
+            const url = `https://slack.com/api/users.list?limit=500&cursor=${cursor}`;
 
             const response = await fetch(url, {
                 headers: {
@@ -201,9 +217,10 @@ async function fullUserListUpdate() {
             if (response.ok) {
                 const data = await response.json();
                 let members = data.members;
-                logger.log("Slack full users update")
+                logger.log(`Slack full users update: ${count}`)
 
                 for(let memberCount in members){
+                    count += 1
                     let member = members[memberCount] 
                     logger.debug("trying to update member",member.id)
                     logger.debug("Expects to work if data here",db.query("SELECT id FROM users WHERE id = $id").get({$id: member.id}))
@@ -238,13 +255,15 @@ async function fullUserListUpdate() {
             logger.debug(`User IDs in channel ${channelId}:`);
             logger.debug("members:",allMembers);
             logger.debug("members count:",allMembers.length)
-            return allMembers;
+            logger.success("Full members list updated!")
+            important.success("Full members list updated!")
         } catch (error) {
+            console.error(error)
             logger.error('An error occurred:', error);
-            return [];
         }
 
     } catch (error) {
+        console.error(error)
         logger.error("Error in updating of all full users from slack", error)
     }
 }
@@ -261,6 +280,7 @@ app.use('/slack', slackRouter);
 // * VIEWS
 
 app.get("/",limit50, (req, res) => {
+    important.log("Someone loaded leaderboard page", req)
     res.sendFile(path.join(__dirname,"./views/index.html"))
 })
 app.get("/public/index.css",limit50, (req, res) => {
@@ -280,10 +300,12 @@ app.get("/public/ImNoah.png",limit50, (req, res) => {
 const api = new Logger("hackhour-leaderboard","API")
 
 app.get("/api/ping",limit100, (req, res) => {
+    important.log("someone used /api/ping", req)
     res.send("pong");
 });
 
 app.get("/api/sessions",limit100, async (req,res) => {
+    important.log("someone used /api/sessions", req)
     try {
         let response = await fetch("https://hackhour.hackclub.com/status")
         let data = await response.json()
@@ -295,6 +317,7 @@ app.get("/api/sessions",limit100, async (req,res) => {
 })
 
 app.get("/api/leaderboard/rank/:id",limit25, (req, res) => {
+    important.log("someone used /api/leaderboard/rank/:id", req)
     const id = req.params.id
     if (id == "") return res.error(400); 
     api.log("Getting leaderboard place for",id)
@@ -321,6 +344,7 @@ app.get("/api/leaderboard/rank/:id",limit25, (req, res) => {
 });
 
 app.get("/api/user/:id",limit25, (req, res) => {
+    important.log("someone used /api/user/:id", req)
     const id = req.params.id
     if (id == "") return res.error(400); 
     api.log("Getting user data for",id)
@@ -337,6 +361,7 @@ app.get("/api/user/:id",limit25, (req, res) => {
 });
 
 app.get("/api/leaderboard",limit25, (req, res) => {
+    important.log("someone used /api/leaderboard", req)
     const cursor = req.query.next_cursor
 
     api.log("Getting leaderboard data with cursor", cursor)
@@ -396,6 +421,7 @@ app.get("/api/leaderboard",limit25, (req, res) => {
 });
 
 app.get("/api/leaderboard/winner",limit25, (req, res) => {
+    important.log("Someone used /api/leaderboard/winner", req)
     
 
     const winners = db.query(
@@ -426,4 +452,5 @@ app.get("/api/leaderboard/winner",limit25, (req, res) => {
 
 app.listen(port, () => {
     console.log(`Listening on port ${port}...`);
+    important.success(`Listening on port ${port}...`);
 });
