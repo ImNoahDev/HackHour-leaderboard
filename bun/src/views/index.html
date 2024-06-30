@@ -361,7 +361,7 @@
             setInterval(updateTimer, 20000)
             updateTimer()
             setInterval(updateBanner,1000)
-            setInterval(refreshSessions,30*1000)
+            setInterval(()=>{location.reload();},15*60*1000) // Reloads Page every 15 mins :o
         }
         
 
