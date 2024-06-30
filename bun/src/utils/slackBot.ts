@@ -1,33 +1,52 @@
-// TODO: INTEGRATE WITH MAIN ROUTER
+import express from 'express';
+import fetch from 'node-fetch';
 
-import { Bun, Request, Response } from 'bun';
-import dotenv from 'dotenv';
+const router = express.Router();
 
-// Load environment variables from .env file
-dotenv.config();
+router.post('/', (req, res) => {
+  const { token, command, user_id, response_url } = req.body;
 
-// Initialize Bun server
-const server = new Bun();
+  // Verify Slack token for security
+  if (token !== process.env.SLACK_VERIFICATION_TOKEN) {
+    res.status(403).send('Access forbidden');
+    return;
+  }
 
-// Define the Slack command handler
-server.route('/slack/command/leaderboard', async (req: Request, res: Response) => {
-  try {
-    // Acknowledge receipt of command (optional in Bun, but useful for Slack)
-    res.json({ text: 'Processing...' });
+  // Handle /leaderboard command
+  if (command === '/supersecretcommand') {
+    // Construct the URL with user_id
+    const leaderboardURL = `https://leaderboard.imnoah.com/?${user_id}`;
 
-    // Respond with a message containing a link to the leaderboard website
-    const message = {
-      text: `Here is the leaderboard website: <https://leaderboard.imnoah.com>`,
+    // Prepare the payload for the interactive message
+    const payload = {
+      text: 'Click the button to view the leaderboard:',
+      attachments: [{
+        text: 'Leaderboard',
+        fallback: 'Leaderboard',
+        actions: [{
+          type: 'button',
+          text: 'View Leaderboard',
+          url: leaderboardURL
+        }]
+      }]
     };
-    res.json(message);
-  } catch (error) {
-    console.error('Error responding to command:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+
+    // Send the interactive message to Slack
+    fetch(response_url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    .then(() => res.status(200).send())
+    .catch((error) => {
+      console.error('Error sending message to Slack:', error);
+      res.status(500).send('Failed to send message to Slack');
+    });
+  } else {
+    res.status(200).send('Command not supported');
   }
 });
 
-// Start the server
-const port = process.env.PORT || 3000;
-server.listen(port, () => {
-  console.log(`Bun server is running on port ${port}`);
-});
+export  {router};

@@ -4,11 +4,13 @@ import schedule from "node-schedule"
 import jwt from "jsonwebtoken"
 import path from "path"
 import { rateLimit } from 'express-rate-limit'
+import bodyParser from 'body-parser';
 
 const JWT_PK = process.env.JWT_PRIVATE_KEY
 
 import { getUserInfo, getAllChannelMembers } from "./utils/getUsers"
 import { getStatsForUser } from "./utils/getHack";
+import  {router}  from "./utils/slackBot"
 
 const logger = new Logger("hackhour-leaderboard","index",{
     logWebook:  {
@@ -182,6 +184,12 @@ async function fullUserListUpdate() {
 
 // fullUserListUpdate()
 
+// * SLACK BOT
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Mount the Slack events router
+app.use('/slack/events', router);
+
 // * VIEWS
 
 app.get("/",limit50, (req, res) => {
@@ -192,6 +200,9 @@ app.get("/public/nullimage.jpg",limit50, (req, res) => {
 })
 app.get("/public/blueTicket.png",limit50, (req, res) => {
     res.sendFile(path.join(__dirname,"./views/blueTicket.png"))
+})
+app.get("/public/ImNoah.png",limit50, (req, res) => {
+    res.sendFile(path.join(__dirname,"./views/imnoah.png"))
 })
 
 // * API

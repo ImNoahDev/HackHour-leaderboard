@@ -39,11 +39,13 @@
 
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 p-6">
-    <div class="max-w-3xl mx-auto">
-        <div class="rate-banner bg-gradient-to-r from-red-900 to-red-800 p-2 rounded shadow-sm flex items-center space-x-2 mt-4 relative font-bold text-gray-300 text-center text-3xl p-10 mx-2 my-10">
-            You are being rate limited, please slow down!
-        </div>
+<body class="bg-gray-100 dark:bg-gray-900">
+    <div id="rate-banner" class="hidden fixed bg-gradient-to-r from-red-900 to-red-800 rounded text-3xl font-bold text-center dark:text-gray-300 w-full z-10 p-4">
+        You are being rate limited, please slow down! <span id="rate-time">0</span> seconds remaining
+    </div>s
+
+    <div class="max-w-3xl mx-auto p-6">
+        
 
         <h1 class="text-3xl font-bold text-center mb-8 dark:text-gray-300">Arcade Leaderboard</h1>
 
@@ -66,8 +68,8 @@
     </div>
 <!-- Footer -->
 <footer class="bg-gray-800 text-white py-2 fixed bottom-0 left-0 right-0 w-full mt-4">
-    <div class="container mx-auto px-4">
-        <div class="flex flex-col sm:flex-row items-center sm:space-x-4 px-2 sm:px-0">
+    <div class="container mx-auto px-4 sm:px-20">
+        <div class="flex flex-col sm:flex-row items-center sm:justify-between sm:space-x-4 px-2">
             <!-- Credits Section -->
             <div class="flex items-center space-x-2">
                 <a href="https://github.com/Bilbo1Gaming" class="flex items-center space-x-1 hover:text-gray-400">
@@ -77,16 +79,16 @@
                 <a href="https://github.com/ImNoahDev" class="flex items-center space-x-1 hover:text-gray-400">
                     <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo" class="w-4 h-4 rounded-full">
                     <span class="text-xs">ImNoahDev</span>
+                    <a href="https://www.imnoah.com" class="flex items-center space-x-1 hover:text-gray-400">
+                        <img src="/public/ImNoah.png" alt="ImNoah Logo" class="w-4 h-4 rounded-full">
+                        <span class="text-xs">ImNoah.com</span>
                 </a>
             </div>
-            <!-- Centered Rights Reserved -->
-            <div class="flex items-center justify-center text-xs mt-2 sm:mt-0 flex-grow">
+            <!-- Rights Reserved -->
+            <div class="text-xs mt-2 sm:mt-0">
                 <p>&copy; 2024 ImLouis and ImNoahDev. All rights reserved.</p>
             </div>
             <!-- Website Links -->
-            <div class="flex items-center space-x-2 mt-2 sm:mt-0">
-                <a href="https://www.imnoah.com" class="text-xs hover:text-gray-400">ImNoah.com</a>
-            </div>
         </div>
     </div>
 </footer>
@@ -101,6 +103,8 @@
 
         let powerUnix;
 
+        let bannerTimer = 0
+
         function refreshSessions(){
             // TODO
         }
@@ -110,6 +114,10 @@
             const url = nextCursor ? `/api/leaderboard?next_cursor=${nextCursor}` : '/api/leaderboard';
             try {
                 const response = await fetch(url);
+                if (response.status == 429) {
+                    bannerTimer += 20
+                    throw new Error('Rate Limit getting leaderboard');
+                }
                 if (!response.ok) {
                     throw new Error('Failed to fetch data');
                 }
@@ -138,8 +146,16 @@
             // Show loader while fetching data
             loader.style.display = 'block';
             
+        
+            let data
             // Fetch leaderboard data
-            const data = await fetchLeaderboardData();
+            try {
+                data = await fetchLeaderboardData();
+            } catch (error) {
+
+                console.error(error)
+                return
+            }
 
             try {
                 let response = await fetch("/api/leaderboard/winner")
@@ -200,7 +216,7 @@
                                     <span class="text-2xl font-bold ${textcolor}-700 dark:${textcolor}-300">${rank}.</span>
                                     <img src="${profilePicture}" alt="${realName}'s Profile Picture" class="w-12 h-12 rounded-xl">
                                     <div>
-                                        <p class="dpn text-lg font-semibold dark:${textcolor}-300">${displayName}</p>
+                                        <p class="dpn max-w-24 break-words text-lg font-semibold dark:${textcolor}-300 mr-2">${displayName}</p>
                                         <p class="idn text-lg font-semibold dark:${textcolor}-300">${uId}</p>
                                         <p class="${textcolor}-600 dark:${textcolor}-400">@${realName}</p>
                                     </div>
@@ -232,6 +248,7 @@
 
                     // Append entry to leaderboard container
                     leaderboardContainer.innerHTML += entryHTML;
+                    TZAdjust()
 
             })}}
         
@@ -278,8 +295,7 @@
             }
         }
 
-        async function loadSequence(){
-            console.log("Loading")
+        async function TZAdjust(){
             if (window.innerWidth < 700){
                 var elements = document.getElementsByClassName('tz');
     
@@ -295,8 +311,14 @@
                 }
                 fullWidthState = true
             }
-            setInterval(updateTimer, 20000);
+        }
+
+        async function loadSequence(){
+            console.log("Loading")
+            TZAdjust()
+            setInterval(updateTimer, 20000)
             updateTimer()
+            setInterval(updateBanner,1000)
         }
         
 
@@ -342,6 +364,14 @@
         pressedKeys[event.key] = false;
         });
 
+        async function updateBanner(){
+            if(bannerTimer > 0){
+                document.getElementById("rate-banner").style.display = "block"
+                bannerTimer = bannerTimer - 1
+            } else {
+                document.getElementById("rate-banner").style.display = "none"
+            }
+        }
 
     
         async function updateTimer() {
@@ -377,6 +407,7 @@
                 document.getElementById("sessions").className = "text-lg font-semibold text-red-500"
                 console.error(error)
             }
+        
         
     }
 
