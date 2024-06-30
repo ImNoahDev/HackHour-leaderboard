@@ -4,6 +4,7 @@ import schedule from "node-schedule"
 import jwt from "jsonwebtoken"
 import path from "path"
 import { rateLimit } from 'express-rate-limit'
+import bodyParser from 'body-parser';
 
 const JWT_PK = process.env.JWT_PRIVATE_KEY
 
@@ -23,6 +24,8 @@ import express from "express";
 
 const app = express();
 const port = 8080;
+
+app.set('trust proxy', 3)
 
 const limit100 = rateLimit({
 	windowMs: 1 * 60 * 1000, // 1 minute
@@ -182,6 +185,14 @@ async function fullUserListUpdate() {
 
 // fullUserListUpdate()
 
+// * SLACK BOT
+import  {slackRouter}  from "./utils/slackBot"
+
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Mount the Slack events router
+app.use('/slack', slackRouter);
+
 // * VIEWS
 
 app.get("/",limit50, (req, res) => {
@@ -192,6 +203,9 @@ app.get("/public/nullimage.jpg",limit50, (req, res) => {
 })
 app.get("/public/blueTicket.png",limit50, (req, res) => {
     res.sendFile(path.join(__dirname,"./views/blueTicket.png"))
+})
+app.get("/public/ImNoah.png",limit50, (req, res) => {
+    res.sendFile(path.join(__dirname,"./views/imnoah.png"))
 })
 
 // * API
