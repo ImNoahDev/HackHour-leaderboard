@@ -10,7 +10,6 @@ const JWT_PK = process.env.JWT_PRIVATE_KEY
 
 import { getUserInfo, getAllChannelMembers } from "./utils/getUsers"
 import { getStatsForUser } from "./utils/getHack";
-import  {router}  from "./utils/slackBot"
 
 const logger = new Logger("hackhour-leaderboard","index",{
     logWebook:  {
@@ -42,12 +41,12 @@ const limit50 = rateLimit({
 	legacyHeaders: false, 
     message: 'You can only make 50 requests every minute.'
 })
-const limit20 = rateLimit({
+const limit25 = rateLimit({
 	windowMs: 1 * 60 * 1000, // 1 minute
-	limit: 20, 
+	limit: 25, 
 	standardHeaders: 'draft-7', 
 	legacyHeaders: false, 
-    message: 'You can only make 20 requests every minute.'
+    message: 'You can only make 25 requests every minute.'
 })
 
 logger.success("Entered Index")
@@ -187,19 +186,12 @@ async function fullUserListUpdate() {
 // fullUserListUpdate()
 
 // * SLACK BOT
-<<<<<<< HEAD
 import  {slackRouter}  from "./utils/slackBot"
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Mount the Slack events router
 app.use('/slack', slackRouter);
-=======
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// Mount the Slack events router
-app.use('/slack/events', router);
->>>>>>> 2e8045a2bab37c3fd514b3eb0eb28e944e9cdf46
 
 // * VIEWS
 
@@ -241,7 +233,7 @@ app.get("/api/sessions",limit100, async (req,res) => {
     
 })
 
-app.get("/api/leaderboard/rank/:id",limit20, (req, res) => {
+app.get("/api/leaderboard/rank/:id",limit25, (req, res) => {
     const id = req.params.id
     if (id == "") return res.error(400); 
     api.log("Getting leaderboard place for",id)
@@ -254,7 +246,7 @@ app.get("/api/leaderboard/rank/:id",limit20, (req, res) => {
     
     const data = db.query(`
         WITH RankedScores AS (
-            SELECT unix, user, sessions, minutes, RANK() OVER (ORDER BY minutes DESC) AS rank
+            SELECT unix, user, sessions, minutes, DENSE_RANK() OVER (ORDER BY minutes DESC) AS rank
             FROM tickets WHERE unix = $unix
         )
         SELECT unix, user, sessions, minutes, rank
@@ -267,7 +259,7 @@ app.get("/api/leaderboard/rank/:id",limit20, (req, res) => {
     res.send(data);
 });
 
-app.get("/api/leaderboard",limit20, (req, res) => {
+app.get("/api/leaderboard",limit25, (req, res) => {
     const cursor = req.query.next_cursor
 
     api.log("Getting leaderboard data with cursor", cursor)
@@ -284,7 +276,7 @@ app.get("/api/leaderboard",limit20, (req, res) => {
         api.debug("No cursor provided")
     } else {
         api.debug("Cursor Provided, decoding...")
-        let decoded = jwt.verify(cursor,JWT_PK)
+        let decoded = jwt.verify(cursor,JWT_PK!)
         if (decoded.sub == "/leaderboard") startPage = decoded.next_cursor
         api.debug(decoded)
     }
@@ -301,7 +293,7 @@ app.get("/api/leaderboard",limit20, (req, res) => {
         ) AS keyset
         WHERE row > $cursor
         ORDER BY rank
-        LIMIT 50;`)
+        LIMIT 51;`)
         .all({
             $cursor: startPage - 1,
             $unix: unix
@@ -309,16 +301,24 @@ app.get("/api/leaderboard",limit20, (req, res) => {
 
     api.debug("Data gotten from DB")
 
-    let out = {
-        next_cursor: jwt.sign({sub: "/leaderboard", exp:  Math.floor(Date.now() / 1000) + 1800 , next_cursor: startPage + 50},JWT_PK),
-        leaderboard: data
+    let out
+
+    if (data.length < 51){
+        out = {leaderboard: data}
+    } else {
+        out = {
+        next_cursor: jwt.sign({sub: "/leaderboard", exp:  Math.floor(Date.now() / 1000) + 1800 , next_cursor: startPage + 50},JWT_PK!),
+        leaderboard: data.slice(0, 50)
     }
+    }
+    
+    
 
     res.send(out)
 
 });
 
-app.get("/api/leaderboard/winner",limit20, (req, res) => {
+app.get("/api/leaderboard/winner",limit25, (req, res) => {
     
 
     const winners = db.query(

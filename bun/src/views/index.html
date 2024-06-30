@@ -41,22 +41,29 @@
 </head>
 <body class="bg-gray-100 dark:bg-gray-900">
     <div id="rate-banner" class="hidden fixed bg-gradient-to-r from-red-900 to-red-800 rounded text-3xl font-bold text-center dark:text-gray-300 w-full z-10 p-4">
-        You are being rate limited, please slow down! <span id="rate-time">0</span> seconds remaining
-    </div>s
+        You are being rate limited, please slow down!<br> <span id="rate-time">0</span> seconds remaining
+    </div>
 
-    <div class="max-w-3xl mx-auto p-6">
+    <div class="max-w-4xl mx-auto p-6">
         
 
         <h1 class="text-3xl font-bold text-center mb-8 dark:text-gray-300">Arcade Leaderboard</h1>
 
-        <div class="bg-gray-800 p-2 rounded shadow-sm flex items-center space-x-2 mt-4 relative">
-            <span class="text-gray-400">Active Sessions:</span>
-            <span id="sessions" class="text-lg font-semibold text-white">Loading...</span>
-            <span class="text-gray-400">Your rank:</span>
-  <span id="sessions" class="text-lg font-semibold text-white"></span>
+        <div class="bg-gray-800 p-2 rounded shadow-sm flex flex-wrap items-center justify-between space-x-2 mt-4 relative">
+            <div>
+                <span class="text-gray-400">Active Sessions:</span>
+                <span id="sessions" class="text-lg font-semibold text-white">Loading...</span>
+            </div>
+        
+            <div class="flex-auto text-right">
+                <span class="text-gray-400">Your rank:</span>
+                <span id="rank" class="text-lg font-semibold text-white">Loading...</span>
+            </div>
+        
             <div class="absolute inset-x-0 bottom-0 border-b-2 border-gray-600"></div>
-            
         </div>
+        
+            
         <hr style="height:10px; visibility:hidden;" />
         <!-- Container for leaderboard entries -->
         <div id="leaderboard" class="space-y-4"></div>
@@ -68,6 +75,8 @@
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A8.001 8.001 0 0112 4.472v3.08a4.001 4.001 0 00-4 4l.001.739zm10-7.956a8.053 8.053 0 00-1.333-4.456 1.002 1.002 0 00-1.664 1.112A6.05 6.05 0 0117.05 11H14v2h3.05a6.05 6.05 0 011.953 3.3 1.002 1.002 0 001.664 1.112 8.053 8.053 0 001.333-4.456z"></path>
             </svg>
         </div>
+        <br>
+        <div id="end" class="hidden text-3xl font-bold text-center mb-8 dark:text-gray-300">You have reached the end!</div>
     </div>
 <!-- Footer -->
 <footer class="bg-gray-800 text-white py-2 fixed bottom-0 left-0 right-0 w-full mt-4">
@@ -99,7 +108,14 @@
 
     <!-- JavaScript for fetching leaderboard data and keyset pagination -->
     <script>
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        const userID = urlParams.get('user_id')
+
         let nextCursor = null;
+        let pageEnded = false;
         let isLoading = false;
         
         let fullWidthState = null;
@@ -108,28 +124,32 @@
 
         let bannerTimer = 0
 
-        function refreshSessions(){
-            // TODO
-        }
+  
 
 
         async function fetchLeaderboardData() {
             const url = nextCursor != null ? `/api/leaderboard?next_cursor=${nextCursor}` : '/api/leaderboard';
             try {
                 if (bannerTimer > 0) throw new Error('On Rate Limit');
+                if (pageEnded) throw new Error('End of Page');
                 const response = await fetch(url);
                 if (response.status == 429) {
                     bannerTimer += 20
-<<<<<<< HEAD
                     updateBanner()
-=======
->>>>>>> 2e8045a2bab37c3fd514b3eb0eb28e944e9cdf46
                     throw new Error('Rate Limit getting leaderboard');
                 }
                 if (!response.ok) {
                     throw new Error('Failed to fetch data');
                 }
                 const data = await response.json();
+
+                if (data.next_cursor == undefined) {
+                    pageEnded = true
+                    document.getElementById("loader").style.display = "none"
+                    document.getElementById("end").style.display = "block"
+
+                    return null
+                }
 
                 nextCursor = data.next_cursor
 
@@ -157,7 +177,6 @@
             // Fetch leaderboard data
             try {
                 data = await fetchLeaderboardData();
-<<<<<<< HEAD
                 if (data == null){
                     throw new Error('Error getting Leaderboard data');
                 }
@@ -165,12 +184,6 @@
 
                 console.error(error)
                 isLoading = false;
-
-=======
-            } catch (error) {
-
-                console.error(error)
->>>>>>> 2e8045a2bab37c3fd514b3eb0eb28e944e9cdf46
                 return
             }
 
@@ -198,6 +211,8 @@
             
             if (data && data.leaderboard) {
                 // Render leaderboard entries
+                let newPeople = ""
+
                 data.leaderboard.forEach(entry => {
                     const uId = entry.id;
                     let profilePicture = entry.avatar;
@@ -243,7 +258,7 @@
                                     <span class="text-2xl font-bold ${textcolor}-700 dark:${textcolor}-300">${rank}.</span>
                                     <img src="${profilePicture}" alt="${realName}'s Profile Picture" class="w-12 h-12 rounded-xl">
                                     <div>
-                                        <p class="dpn max-w-24 break-words text-lg font-semibold dark:${textcolor}-300 mr-2">${displayName}</p>
+                                        <p class="dpn max-w-32 break-words text-lg font-semibold dark:${textcolor}-300 mr-2">${displayName}</p>
                                         <p class="idn text-lg font-semibold dark:${textcolor}-300">${uId}</p>
                                         <p class="${textcolor}-600 dark:${textcolor}-400">@${realName}</p>
                                     </div>
@@ -274,10 +289,13 @@
 
 
                     // Append entry to leaderboard container
-                    leaderboardContainer.innerHTML += entryHTML;
-                    TZAdjust()
+                    newPeople += entryHTML
 
-            })}}
+            })
+
+            leaderboardContainer.innerHTML += newPeople;
+            TZAdjust()
+        }}
         
 
         // Load initial leaderboard when the page loads
@@ -291,7 +309,6 @@
         window.addEventListener('scroll', async () => {
             if (window.innerHeight + window.scrollY + 800 >= document.body.offsetHeight) {
                 console.log("Trying to load more data")
-                console.log(nextCursor)
                 renderLeaderboard();
             }
         });
@@ -344,6 +361,7 @@
             setInterval(updateTimer, 20000)
             updateTimer()
             setInterval(updateBanner,1000)
+            setInterval(refreshSessions,30*1000)
         }
         
 
@@ -392,10 +410,7 @@
         async function updateBanner(){
             if(bannerTimer > 0){
                 document.getElementById("rate-banner").style.display = "block"
-<<<<<<< HEAD
                 document.getElementById("rate-time").innerText = bannerTimer
-=======
->>>>>>> 2e8045a2bab37c3fd514b3eb0eb28e944e9cdf46
                 bannerTimer = bannerTimer - 1
             } else {
                 document.getElementById("rate-banner").style.display = "none"
@@ -442,6 +457,32 @@
             } catch (error) {
                 document.getElementById("sessions").innerText = "Arcade API is down!"
                 document.getElementById("sessions").className = "text-lg font-semibold text-red-500"
+                console.error(error)
+            }
+
+            try {
+                if (bannerTimer > 0) throw new Error('On Rate Limit');
+                let response = await fetch("/api/leaderboard/rank/"+userID)
+                if (response.status == 429) {
+                    bannerTimer += 20
+                    updateBanner()
+                    throw new Error('Rate Limit getting leaderboard');
+                }
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                let data = await response.json()
+                if (data.error) {
+                    throw Error("There was an error with the hack hour API")
+                    console.error(error)
+                }
+
+                document.getElementById("rank").innerText = data.rank
+                document.getElementById("rank").className = "text-lg font-semibold text-white"
+        
+            } catch (error) {
+                document.getElementById("rank").innerText = "Not Found"
+                document.getElementById("rank").className = "text-lg font-semibold text-red-500"
                 console.error(error)
             }
         
