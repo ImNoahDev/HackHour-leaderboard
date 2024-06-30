@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark" >
 <head>
     <script> // Set a cookie or local storage indicating dark mode preference
         localStorage.setItem('preferred-color-scheme', 'dark');
@@ -7,12 +7,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leaderboard</title>
-    <!-- Include Tailwind CSS with dark mode via CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/custom-forms"></script>
+    <link rel="stylesheet" href="/public/index.css">
     <style>
         /* Enable dark mode */
-        @media (prefers-color-scheme: dark) {
+        /* @media (prefers-color-scheme: dark) {
             .dark\:bg-gray-900 { background-color: #1a202c; }
             .dark\:bg-gray-800 { background-color: #2d3748; }
             .dark\:bg-gray-700 { background-color: #4a5568; }
@@ -20,6 +18,14 @@
             .dark\:text-gray-400 { color: #cbd5e0; }
             .dark\:text-gray-500 { color: #a0aec0; }
         }
+        @media (prefers-color-scheme: light) {
+            .dark\:bg-gray-900 { background-color: #1a202c; }
+            .dark\:bg-gray-800 { background-color: #2d3748; }
+            .dark\:bg-gray-700 { background-color: #4a5568; }
+            .dark\:text-gray-300 { color: #d1d5db; }
+            .dark\:text-gray-400 { color: #cbd5e0; } */
+            /* .dark\:text-gray-500 { color: #a0aec0; }
+        } */
         .idn {display: none;}
 
         @layer utilities {
@@ -42,7 +48,7 @@
     position: sticky;
     top: 0;
     overflow: visible;
-    z-index: 100;
+    z-index: 10;
     padding-top: 0.5%;
     /* Add relative positioning to contain ::before pseudo-element */
     position: relative;
@@ -63,9 +69,12 @@
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 .dark .dark">
-    <div id="rate-banner" class="hidden fixed bg-gradient-to-r from-red-900 to-red-800 rounded text-3xl font-bold text-center dark:text-gray-300 w-full z-10 p-4">
-        You are being rate limited, please slow down!<br> <span id="rate-time">0</span> seconds remaining
+    <div id="rate-banner" class="hidden fixed bg-gradient-to-r from-red-900 to-red-800 rounded-2xl text-3xl font-bold text-center dark:text-gray-300 p-8 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 shadow-lg z-50">
+        You are being rate limited, please slow down!<br>
+        <span id="rate-time">0</span> seconds remaining
     </div>
+    
+    
 
     <div class="max-w-4xl mx-auto p-6">
         
@@ -290,7 +299,7 @@
                     }
                     // Create entry HTML
                     const entryHTML = `
-                        <div class="flex items-center ${paddingu} bg-white dark:${nullcolor} shadow-md rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                        <div class="flex items-center ${paddingu} ${nullcolor} shadow-md rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300">
                             <a href="https://hackclub.slack.com/team/${uId}" target="_blank" rel="noreferrer noopener" >
                                 <div class="flex items-center space-x-4">
                                     <span class="text-2xl font-bold ${textcolor}-700 dark:${textcolor}-300">${rank}.</span>
@@ -551,7 +560,7 @@
                         let nullcolor = 'bg-lime-900'
         
                         const userentryHTML = `
-                        <div class="flex items-center p-3 bg-white dark:${nullcolor} shadow-md rounded-lg hover:shadow-lg transform transition-all duration-300 width-full sticky">
+                        <div class="flex items-center p-3 ${nullcolor} shadow-md rounded-lg hover:shadow-lg transform transition-all duration-300 width-full sticky">
                             <a href="https://hackclub.slack.com/team/${uId}" target="_blank" rel="noreferrer noopener" >
                                 <div class="flex items-center space-x-4">
                                     <span class="text-2xl font-bold ${textcolor}-700 dark:${textcolor}-300">${rank}.</span>

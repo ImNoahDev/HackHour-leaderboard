@@ -17,9 +17,9 @@ const boltApp = new App({
 
 export const slackRouter = express.Router();
 
-slackRouter.post('/supersecretcommand', async (req, res) => {
+slackRouter.post('/arcade-leaderboard', async (req, res) => {
   const { command, user_id, trigger_id } = req.body;
-  if (command === "/supersecretcommand") {
+  if (command === "/arcade-leaderboard") {
     try {
       await boltApp.client.views.open({
         trigger_id,

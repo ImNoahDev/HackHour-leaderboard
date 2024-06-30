@@ -11,14 +11,7 @@ const JWT_PK = process.env.JWT_PRIVATE_KEY
 import { getUserInfo, getAllChannelMembers } from "./utils/getUsers"
 import { getStatsForUser } from "./utils/getHack";
 
-const logger = new Logger("hackhour-leaderboard","index",{
-    logWebook:  {
-        enable: true, 
-        url: process.env.DISCORD_WEBHOOK, 
-        form: "discord"
-    }
-    }
-)
+const logger = new Logger("hackhour-leaderboard","index")
 
 import express from "express";
 
@@ -55,6 +48,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const db = new Database("db.sqlite",{create: true});
 db.exec('PRAGMA foreign_keys = ON')
+db.run('pragma busy_timeout = 1000;');
 
 
 // db.run(`CREATE TABLE IF NOT EXISTS 'users_tmp' ('id' TEXT PRIMARY KEY NOT NULL, 'username' TEXT, 'displayName' TEXT);`);
@@ -68,7 +62,7 @@ logger.debug(db.query("select 'hello world' as message").get())
 // schedule.scheduleJob('0 40 0 * * *', fullUserListUpdate);
 schedule.scheduleJob("0 * * * * *", updateActiveSessionCount);
 
-// fullUserListUpdate()
+fullUserListUpdate()
 
 async function updateActiveSessionCount() {
     try {
@@ -195,8 +189,8 @@ async function fullUserListUpdate() {
 
         try {
             do {
-                await sleep(500)
-            const url = `https://slack.com/api/users.list?limit=50&cursor=${cursor}`;
+                await sleep(4000)
+            const url = `https://slack.com/api/users.list?limit=150&cursor=${cursor}`;
 
             const response = await fetch(url, {
                 headers: {
@@ -207,6 +201,7 @@ async function fullUserListUpdate() {
             if (response.ok) {
                 const data = await response.json();
                 let members = data.members;
+                logger.log("Slack full users update")
 
                 for(let memberCount in members){
                     let member = members[memberCount] 
@@ -214,15 +209,15 @@ async function fullUserListUpdate() {
                     logger.debug("Expects to work if data here",db.query("SELECT id FROM users WHERE id = $id").get({$id: member.id}))
 
                     try {
-                        await sleep(500)
-                        db.query(`UPDATE users SET realname = "$realname" , displayname = "$displayname" , avatar = "$avatar", tz = "$tz" WHERE id = "$id"`).get({
-                            $id: member.id.toString, 
-                            $realname: member.user.profile.real_name.toString,
-                            $displayname: member.user.profile.display_name.toString,
-                            $avatar: member.user.profile.image_48.toString,
-                            $tz: member.user.tz.toString
+                        const res = db.query(`UPDATE users SET realname= $realname , displayname= $displayname , avatar= $avatar, tz= $tz WHERE id = $id`).run({
+                            $realname: member.profile.real_name,
+                            $displayname: member.profile.display_name,
+                            $avatar: member.profile.image_48,
+                            $tz: member.tz,
+                            $id: member.id
                         })
                     } catch (error) {
+                        console.error(error)
                         logger.debug("User failed to update",error)
                     }
                     
@@ -231,6 +226,7 @@ async function fullUserListUpdate() {
                 // Check if there are more members to fetch
                 cursor = data.response_metadata.next_cursor || '';
             } else {
+                console.error(response)
                 logger.error('Error fetching channel members:');
                 break;
             }
@@ -267,6 +263,9 @@ app.use('/slack', slackRouter);
 app.get("/",limit50, (req, res) => {
     res.sendFile(path.join(__dirname,"./views/index.html"))
 })
+app.get("/public/index.css",limit50, (req, res) => {
+    res.sendFile(path.join(__dirname,"./views/index.css"))
+})
 app.get("/public/nullimage.jpg",limit50, (req, res) => {
     res.sendFile(path.join(__dirname,"./views/nullimage.jpg"))
 })
@@ -278,14 +277,7 @@ app.get("/public/ImNoah.png",limit50, (req, res) => {
 })
 
 // * API
-const api = new Logger("hackhour-leaderboard","API",{
-    logWebook:  {
-        enable: true, 
-        url: process.env.DISCORD_WEBHOOK, 
-        form: "discord"
-    }
-    }
-)
+const api = new Logger("hackhour-leaderboard","API")
 
 app.get("/api/ping",limit100, (req, res) => {
     res.send("pong");

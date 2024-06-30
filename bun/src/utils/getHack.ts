@@ -2,13 +2,7 @@
 import Logger from "louis-log";
 
 // Initialize the logger
-const logger = new Logger("hackhour-leaderboard", "getHack", {
-    logWebook: {
-        enable: true,
-        url: process.env.DISCORD_WEBHOOK,
-        form: "discord"
-    }
-});
+const logger = new Logger("hackhour-leaderboard", "getHack")
 
 //Function to fetch number of sessions
 export async function getStatsForUser(slackId: string): Promise<object | null> {

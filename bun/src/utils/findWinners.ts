@@ -5,14 +5,7 @@ import Logger from "louis-log"
 const db = new Database("db.sqlite",{create: true});
 db.exec('PRAGMA foreign_keys = ON')
 
-const logger = new Logger("hackhour-leaderboard","find winners",{
-    logWebook:  {
-        enable: true, 
-        url: process.env.DISCORD_WEBHOOK, 
-        form: "discord"
-    }
-    }
-)
+const logger = new Logger("hackhour-leaderboard","find winners")
 
 function main(){
     const unixList = db.query(`SELECT DISTINCT unix FROM tickets ORDER BY unix DESC`).all()
