@@ -66,8 +66,27 @@ logger.debug(db.query("select 'hello world' as message").get())
 // schedule.scheduleJob('0 0 * * * *', updateTicketCount );
 // schedule.scheduleJob('0 20 */2 * * *', updateUserList );
 // schedule.scheduleJob('0 40 0 * * *', fullUserListUpdate);
+schedule.scheduleJob("0 * * * * *", updateActiveSessionCount);
 
 // fullUserListUpdate()
+
+async function updateActiveSessionCount() {
+    try {
+        const currentTime = Math.floor(new Date().getTime() / 1000)
+
+        let response = await fetch("https://hackhour.hackclub.com/status")
+        let data = await response.json()
+
+        db.query("INSERT INTO activeSession (unix, sessions) VALUES($unix, $sessions)").run({
+            $unix: currentTime,
+            $sessions: data.activeSessions
+        })
+        
+        logger.success("Updated active session count",data.activeSessions)
+    } catch (error) {
+        api.error("There was an issue updating the count of active sessions",error)
+    }
+}
 
 async function updateTicketCount(){
     try {
@@ -170,13 +189,13 @@ async function fullUserListUpdate() {
         logger.log("Starting full user update")
 
 
-        // const updateUser = db.prepare("UPDATE users SET  realname=$realname , displayname=$displayname , avatar=$avatar, tz=$tz WHERE id = $id")
+        // const updateUser = db.prepare()
         
-        let allMembers: string[] = [];
         let cursor = '';
 
         try {
             do {
+                await sleep(500)
             const url = `https://slack.com/api/users.list?limit=50&cursor=${cursor}`;
 
             const response = await fetch(url, {
@@ -187,14 +206,37 @@ async function fullUserListUpdate() {
 
             if (response.ok) {
                 const data = await response.json();
-                allMembers.push(...data.members);
+                let members = data.members;
 
+                for(let memberCount in members){
+                    let member = members[memberCount] 
+                    logger.debug("trying to update member",member.id)
+                    logger.debug("Expects to work if data here",db.query("SELECT id FROM users WHERE id = $id").get({$id: member.id}))
+
+                    try {
+                        await sleep(500)
+                        db.query(`UPDATE users SET realname = "$realname" , displayname = "$displayname" , avatar = "$avatar", tz = "$tz" WHERE id = "$id"`).get({
+                            $id: member.id.toString, 
+                            $realname: member.user.profile.real_name.toString,
+                            $displayname: member.user.profile.display_name.toString,
+                            $avatar: member.user.profile.image_48.toString,
+                            $tz: member.user.tz.toString
+                        })
+                    } catch (error) {
+                        logger.debug("User failed to update",error)
+                    }
+                    
+                }
+                
                 // Check if there are more members to fetch
                 cursor = data.response_metadata.next_cursor || '';
             } else {
-                logger.error('Error fetching channel members:', await response.text());
+                logger.error('Error fetching channel members:');
                 break;
             }
+
+
+
             } while (cursor);
 
             logger.debug(`User IDs in channel ${channelId}:`);

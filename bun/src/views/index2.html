@@ -17,7 +17,6 @@
             .dark\:text-gray-400 { color: #cbd5e0; }
             .dark\:text-gray-500 { color: #a0aec0; }
         }
-
         .idn {display: none;}
 
         @layer utilities {
@@ -35,8 +34,29 @@
     background-size: 200% 200%;
     animation: tie-dye-animation 60s linear infinite;
   }
-        }
+  .sticky-top {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    overflow: visible;
+    z-index: 100;
+    padding-top: 0.5%;
+    /* Add relative positioning to contain ::before pseudo-element */
+    position: relative;
+}
 
+.sticky-top::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(0.5% + 10px); /* Adjust height as needed */
+    background-color: rgb(17, 24, 39); /* Replace with your desired background color */
+    z-index: -1;
+}
+
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900">
@@ -63,11 +83,11 @@
             <div class="absolute inset-x-0 bottom-0 border-b-2 border-gray-600"></div>
         </div>
         
-            
         <hr style="height:10px; visibility:hidden;" />
         <!-- Container for leaderboard entries -->
+        <div id="yourstats" class="sticky sticky-top pb-10"> </div>
         <div id="leaderboard" class="space-y-4"></div>
-        
+
         <!-- Loader when fetching data -->
         <div id="loader" class="text-center py-4">
             <svg class="animate-spin h-8 w-8 mx-auto my-4 text-gray-500 dark:text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -218,14 +238,15 @@
                     let profilePicture = entry.avatar;
                     let realName = entry.realname;
                     let displayName = entry.displayname || realName;
-                    const sessions = entry.sessions;
-                    const minutes = entry.minutes;
-                    const rank = entry.rank;
+                    let sessions = entry.sessions;
+                    let minutes = entry.minutes;
+                    let rank = entry.rank;
                     let ticketUrl = "https://emoji.slack-edge.com/T0266FRGM/tw_admission_tickets/cab11d6f34ffab2d.png";
                     let textcolor = 'text-gray'
                     let timeZone = entry.tz;
                     let timezoneColor = 'bg-gray-600'
                     let nullcolor = 'bg-gray-800'
+                    let paddingu = "p-4"
                     if (timeZone) {
                         timeZone = timeZone.replace(/_/g, ' ').replace(/\//g, ', ').split(', ').reverse().join(', ');
                     }
@@ -240,7 +261,7 @@
                         timezoneColor = ''
                         timeZone = ""
                         realName = 'Error with user data'
-                        displayName = 'Error with user data'
+                        displayName = 'Error'
                     }
 
                     if (rank == 1) {
@@ -248,11 +269,25 @@
                         textcolor = 'text-black'
                         timezoneColor = 'shadow-2xl bg-yellow-500' 
                         ticketUrl = "public/blueTicket.png"
+                        paddingu = "p-6"
 
+                    }
+
+                    if (userID==uId) {
+                        timezoneColor = 'bg-lime-800'
+                        nullcolor = 'bg-lime-900'
+                        if (rank == 1) {
+                            nullcolor = 'bg-gradient-to-r from-yellow-600 to-yellow-400'
+                        textcolor = 'text-black'
+                        timezoneColor = 'shadow-2xl bg-yellow-500' 
+                        ticketUrl = "public/blueTicket.png"
+                        paddingu = "p-6"
+                        
+                        }
                     }
                     // Create entry HTML
                     const entryHTML = `
-                        <div class="flex items-center p-4 bg-white dark:${nullcolor} shadow-md rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                        <div class="flex items-center ${paddingu} bg-white dark:${nullcolor} shadow-md rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300">
                             <a href="https://hackclub.slack.com/team/${uId}" target="_blank" rel="noreferrer noopener" >
                                 <div class="flex items-center space-x-4">
                                     <span class="text-2xl font-bold ${textcolor}-700 dark:${textcolor}-300">${rank}.</span>
@@ -275,7 +310,7 @@
                             }
 
                             ${
-                            rank == 1 ?  `<div id="timer" style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz tie-dye-background ml-auto mr-2 font-bold text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                            rank == 1 ?  `<div style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz timer tie-dye-background ml-auto mr-2 font-bold text-center ${timezoneColor} px-2 py-1 rounded-xl">
                                 <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">0:0:0</p>
                             </div>` : ``
                             }
@@ -301,6 +336,7 @@
         // Load initial leaderboard when the page loads
         document.addEventListener('DOMContentLoaded', async () => {
             await renderLeaderboard();
+            await renderPerson();
             loadSequence();
                     
         });
@@ -432,7 +468,11 @@
             const minutes = Math.floor((differenceInSeconds % (60 * 60)) / 60);
             
             // Update the timer display
-            document.getElementById('timer').innerHTML = `In 1st place for: <br> ${days}d ${hours}h ${minutes}m`;
+            let timers = document.getElementsByClassName("timer")
+            console.log(timers)
+            for(let timer in timers){
+                timers[ti].innerHTML = `In 1st place for: <br> ${days}d ${hours}h ${minutes}m`
+            })
 
             try {
                 if (bannerTimer > 0) throw new Error('On Rate Limit');
@@ -488,6 +528,64 @@
         
         
     }
+    async function renderPerson() {
+    if (userID) {
+                        let uId = userID;
+                        let response = await fetch("/api/leaderboard/rank/"+uId)
+                        let data = await response.json()
+                        response = await fetch("/api/user/"+uId)
+                        let youUser = await response.json()
+                        let profilePicture = youUser.avatar;
+                        let realName = youUser.realname;
+                        let displayName = youUser.displayname || realName;
+                        let sessions = data.sessions;
+                        let minutes = sessions*60;
+                        let rank = data.rank;
+                        let ticketUrl = "https://emoji.slack-edge.com/T0266FRGM/tw_admission_tickets/cab11d6f34ffab2d.png";
+                        let textcolor = 'text-gray'
+                        let timeZone = youUser.tz;
+                        let timezoneColor = 'bg-lime-800'
+                        let nullcolor = 'bg-lime-900'
+        8
+                        const userentryHTML = `
+                        <div class="flex items-center p-3 bg-white dark:${nullcolor} shadow-md rounded-lg hover:shadow-lg transform transition-all duration-300 width-full sticky">
+                            <a href="https://hackclub.slack.com/team/${uId}" target="_blank" rel="noreferrer noopener" >
+                                <div class="flex items-center space-x-4">
+                                    <span class="text-2xl font-bold ${textcolor}-700 dark:${textcolor}-300">${rank}.</span>
+                                    <img src="${profilePicture}" alt="${realName}'s Profile Picture" class="w-12 h-12 rounded-xl">
+                                    <div>
+                                        <p class="dpn max-w-32 break-words text-lg font-semibold dark:${textcolor}-300 mr-2">You</p>
+                                        <p class="idn text-lg font-semibold dark:${textcolor}-300">${uId}</p>
+                                        <p class="${textcolor}-600 dark:${textcolor}-400">@${realName}</p>
+                                    </div>
+                                </div>
+                            </a>
+
+                            
+                            ${
+                            rank == 1 ?  `<div style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz ml-8 text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                                <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">${timeZone}</p>
+                            </div>` : `<div class="tz ml-8 text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                                <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">${timeZone}</p>
+                            </div>`
+                            }
+
+                            ${
+                            rank == 1 ?  `<div style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz timer tie-dye-background ml-auto mr-2 font-bold text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                                <p class="text-black-600 dark:text-black-300 font-bold">0:0:0</p>
+                            </div>` : ``
+                            }
+
+                            <div class="ml-auto mr-2 flex items-center space-x-2">
+                                <p class="text-2xl font-bold ${textcolor}-700 dark:${textcolor}-300">${Math.floor(minutes/60)}</p>
+                                <img src="${ticketUrl}" alt="Ticket Icon" class="w-8 h-8">
+                            </div>
+                        </div>
+                    `;
+                        
+                    const leaderboardContainer2 = document.getElementById('yourstats');
+                    leaderboardContainer2.innerHTML = userentryHTML
+                    }}
 
     </script>
 

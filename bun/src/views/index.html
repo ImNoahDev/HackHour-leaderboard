@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script> // Set a cookie or local storage indicating dark mode preference
+        localStorage.setItem('preferred-color-scheme', 'dark');
+        </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leaderboard</title>
@@ -17,7 +20,6 @@
             .dark\:text-gray-400 { color: #cbd5e0; }
             .dark\:text-gray-500 { color: #a0aec0; }
         }
-
         .idn {display: none;}
 
         @layer utilities {
@@ -57,10 +59,10 @@
     z-index: -1;
 }
 
-
+        }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900">
+<body class="bg-gray-100 dark:bg-gray-900 .dark .dark">
     <div id="rate-banner" class="hidden fixed bg-gradient-to-r from-red-900 to-red-800 rounded text-3xl font-bold text-center dark:text-gray-300 w-full z-10 p-4">
         You are being rate limited, please slow down!<br> <span id="rate-time">0</span> seconds remaining
     </div>
@@ -277,6 +279,14 @@
                     if (userID==uId) {
                         timezoneColor = 'bg-lime-800'
                         nullcolor = 'bg-lime-900'
+                        if (rank == 1) {
+                            nullcolor = 'bg-gradient-to-r from-yellow-600 to-yellow-400'
+                        textcolor = 'text-black'
+                        timezoneColor = 'shadow-2xl bg-yellow-500' 
+                        ticketUrl = "public/blueTicket.png"
+                        paddingu = "p-6"
+                        
+                        }
                     }
                     // Create entry HTML
                     const entryHTML = `
@@ -303,7 +313,7 @@
                             }
 
                             ${
-                            rank == 1 ?  `<div id="timer" style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz tie-dye-background ml-auto mr-2 font-bold text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                            rank == 1 ?  `<div style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz timer tie-dye-background ml-auto mr-2 font-bold text-center ${timezoneColor} px-2 py-1 rounded-xl">
                                 <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">0:0:0</p>
                             </div>` : ``
                             }
@@ -461,7 +471,11 @@
             const minutes = Math.floor((differenceInSeconds % (60 * 60)) / 60);
             
             // Update the timer display
-            document.getElementById('timer').innerHTML = `In 1st place for: <br> ${days}d ${hours}h ${minutes}m`;
+            let timers = document.getElementsByClassName("timer")
+            console.log(timers)
+            for(let timer in timers){
+                timers[timer].innerHTML = `In 1st place for: <br> ${days}d ${hours}h ${minutes}m`
+            }
 
             try {
                 if (bannerTimer > 0) throw new Error('On Rate Limit');
@@ -535,7 +549,7 @@
                         let timeZone = youUser.tz;
                         let timezoneColor = 'bg-lime-800'
                         let nullcolor = 'bg-lime-900'
-        8
+        
                         const userentryHTML = `
                         <div class="flex items-center p-3 bg-white dark:${nullcolor} shadow-md rounded-lg hover:shadow-lg transform transition-all duration-300 width-full sticky">
                             <a href="https://hackclub.slack.com/team/${uId}" target="_blank" rel="noreferrer noopener" >
@@ -560,8 +574,8 @@
                             }
 
                             ${
-                            rank == 1 ?  `<div id="timer" style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz tie-dye-background ml-auto mr-2 font-bold text-center ${timezoneColor} px-2 py-1 rounded-xl">
-                                <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">0:0:0</p>
+                            rank == 1 ?  `<div style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz timer tie-dye-background ml-auto mr-2 font-bold text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                                <p class="text-black-600 dark:text-black-300 font-bold">0:0:0</p>
                             </div>` : ``
                             }
 

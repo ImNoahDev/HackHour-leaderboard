@@ -27,7 +27,8 @@ SELECT * FROM users LEFT JOIN tickets ON users.id = tickets.user WHERE users.id 
 
 SELECT * FROM users WHERE id = U079Z52J6AH;
 
-
+SELECT * (SELECT DISTINCT unix FROM tickets ORDER BY unix DESC )
+INTO ticketBatches;
 
 SELECT tz, COUNT(*) AS count
 FROM users
@@ -54,3 +55,15 @@ ORDER BY unix DESC;
 SELECT unix from tickets ORDER BY unix DESC;
 
 DELETE FROM winners;
+
+-- UNIX BATCH MANUAL UPDATE
+DELETE FROM ticketBatches; -- CLEAR
+INSERT INTO ticketBatches SELECT DISTINCT unix FROM tickets ORDER BY unix; -- ADD
+
+
+
+
+SELECT unix from ticketBatches ORDER BY unix DESC;
+
+
+UPDATE users SET realname="Orange" , displayname="o" , avatar="txt", tz="ass" WHERE id = "U0266FRGP"
