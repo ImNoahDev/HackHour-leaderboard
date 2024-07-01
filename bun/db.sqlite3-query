@@ -1,0 +1,69 @@
+-- database: ./db.sqlite
+
+-- Use the ▷ button in the top right corner to run the entire file.
+
+SELECT * FROM tickets
+WHERE unix = 1719698400
+ORDER BY minutes DESC;
+
+-- Keyset pagination for getting leaderboard on /leaderboard
+SELECT row, rank, id, sessions, minutes, realname, displayname, avatar, tz FROM (
+    SELECT ROW_NUMBER() OVER (ORDER BY minutes DESC) AS row, DENSE_RANK() OVER (ORDER BY minutes DESC) AS rank, users.id, sessions, minutes, users.realname, users.displayname, users.avatar, users.tz 
+    FROM tickets
+    LEFT JOIN users ON tickets.user=users.id
+    WHERE unix = 1719698400
+    ORDER BY minutes DESC
+) AS keyset
+WHERE row > 0
+ORDER BY rank
+LIMIT 50;
+
+
+SELECT ROWID FROM users;
+
+
+SELECT * FROM users LEFT JOIN tickets ON users.id = tickets.user WHERE users.id = U0511S72BHP;
+
+
+SELECT * FROM users WHERE id = U079Z52J6AH;
+
+SELECT * (SELECT DISTINCT unix FROM tickets ORDER BY unix DESC )
+INTO ticketBatches;
+
+SELECT tz, COUNT(*) AS count
+FROM users
+GROUP BY tz
+ORDER BY count DESC;
+
+
+-- FIND USER RANK
+WITH RankedScores AS (
+    SELECT user, minutes, DENSE_RANK() OVER (ORDER BY minutes DESC) AS rank
+    FROM tickets WHERE unix = 1719655200
+)
+SELECT user, minutes, rank
+FROM RankedScores
+WHERE user = 'U0799517M26';
+
+
+-- Find winner from winers table
+SELECT * FROM winners
+ORDER BY unix DESC;
+
+-- Find winner at unix timestamp
+
+SELECT unix from tickets ORDER BY unix DESC;
+
+DELETE FROM winners;
+
+-- UNIX BATCH MANUAL UPDATE
+DELETE FROM ticketBatches; -- CLEAR
+INSERT INTO ticketBatches SELECT DISTINCT unix FROM tickets ORDER BY unix; -- ADD
+
+
+
+
+SELECT unix from ticketBatches ORDER BY unix DESC;
+
+
+UPDATE users SET realname="Orange" , displayname="o" , avatar="txt", tz="ass" WHERE id = "U0266FRGP"

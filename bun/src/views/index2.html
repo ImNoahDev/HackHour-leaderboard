@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+    <!-- Include Tailwind CSS with dark mode via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/custom-forms"></script>
+    <style>
+        /* Enable dark mode */
+        @media (prefers-color-scheme: dark) {
+            .dark\:bg-gray-900 { background-color: #1a202c; }
+            .dark\:bg-gray-800 { background-color: #2d3748; }
+            .dark\:bg-gray-700 { background-color: #4a5568; }
+            .dark\:text-gray-300 { color: #d1d5db; }
+            .dark\:text-gray-400 { color: #cbd5e0; }
+            .dark\:text-gray-500 { color: #a0aec0; }
+        }
+        .idn {display: none;}
+
+        @layer utilities {
+  .tie-dye-background {
+    background: 
+      radial-gradient(circle at 10% 20%, #ff7e5f, transparent 30%),
+      radial-gradient(circle at 30% 40%, #feb47b, transparent 30%),
+      radial-gradient(circle at 50% 60%, #86a8e7, transparent 30%),
+      radial-gradient(circle at 70% 80%, #8e44ad, transparent 30%),
+      radial-gradient(circle at 90% 20%, #3498db, transparent 30%),
+      radial-gradient(circle at 30% 70%, #2ecc71, transparent 30%),
+      radial-gradient(circle at 50% 20%, #f39c12, transparent 30%),
+      radial-gradient(circle at 70% 30%, #e74c3c, transparent 30%),
+      radial-gradient(circle at 20% 80%, #9b59b6, transparent 30%);
+    background-size: 200% 200%;
+    animation: tie-dye-animation 60s linear infinite;
+  }
+  .sticky-top {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    overflow: visible;
+    z-index: 100;
+    padding-top: 0.5%;
+    /* Add relative positioning to contain ::before pseudo-element */
+    position: relative;
+}
+
+.sticky-top::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(0.5% + 10px); /* Adjust height as needed */
+    background-color: rgb(17, 24, 39); /* Replace with your desired background color */
+    z-index: -1;
+}
+
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900">
+    <div id="rate-banner" class="hidden fixed bg-gradient-to-r from-red-900 to-red-800 rounded text-3xl font-bold text-center dark:text-gray-300 w-full z-10 p-4">
+        You are being rate limited, please slow down!<br> <span id="rate-time">0</span> seconds remaining
+    </div>
+
+    <div class="max-w-4xl mx-auto p-6">
+        
+
+        <h1 class="text-3xl font-bold text-center mb-8 dark:text-gray-300">Arcade Leaderboard</h1>
+
+        <div class="bg-gray-800 p-2 rounded shadow-sm flex flex-wrap items-center justify-between space-x-2 mt-4 relative">
+            <div>
+                <span class="text-gray-400">Active Sessions:</span>
+                <span id="sessions" class="text-lg font-semibold text-white">Loading...</span>
+            </div>
+        
+            <div class="flex-auto text-right">
+                <span class="text-gray-400">Your rank:</span>
+                <span id="rank" class="text-lg font-semibold text-white">Loading...</span>
+            </div>
+        
+            <div class="absolute inset-x-0 bottom-0 border-b-2 border-gray-600"></div>
+        </div>
+        
+        <hr style="height:10px; visibility:hidden;" />
+        <!-- Container for leaderboard entries -->
+        <div id="yourstats" class="sticky sticky-top pb-10"> </div>
+        <div id="leaderboard" class="space-y-4"></div>
+
+        <!-- Loader when fetching data -->
+        <div id="loader" class="text-center py-4">
+            <svg class="animate-spin h-8 w-8 mx-auto my-4 text-gray-500 dark:text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A8.001 8.001 0 0112 4.472v3.08a4.001 4.001 0 00-4 4l.001.739zm10-7.956a8.053 8.053 0 00-1.333-4.456 1.002 1.002 0 00-1.664 1.112A6.05 6.05 0 0117.05 11H14v2h3.05a6.05 6.05 0 011.953 3.3 1.002 1.002 0 001.664 1.112 8.053 8.053 0 001.333-4.456z"></path>
+            </svg>
+        </div>
+        <br>
+        <div id="end" class="hidden text-3xl font-bold text-center mb-8 dark:text-gray-300">You have reached the end!</div>
+    </div>
+<!-- Footer -->
+<footer class="bg-gray-800 text-white py-2 fixed bottom-0 left-0 right-0 w-full mt-4">
+    <div class="container mx-auto px-4 sm:px-20">
+        <div class="flex flex-col sm:flex-row items-center sm:justify-between sm:space-x-4 px-2">
+            <!-- Credits Section -->
+            <div class="flex items-center space-x-2">
+                <a href="https://github.com/Bilbo1Gaming" class="flex items-center space-x-1 hover:text-gray-400">
+                    <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo" class="w-4 h-4 rounded-full">
+                    <span class="text-xs">Bilbo1Gaming (ImLouis)</span>
+                </a>
+                <a href="https://github.com/ImNoahDev" class="flex items-center space-x-1 hover:text-gray-400">
+                    <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo" class="w-4 h-4 rounded-full">
+                    <span class="text-xs">ImNoahDev</span>
+                    <a href="https://www.imnoah.com" class="flex items-center space-x-1 hover:text-gray-400">
+                        <img src="/public/ImNoah.png" alt="ImNoah Logo" class="w-4 h-4 rounded-full">
+                        <span class="text-xs">ImNoah.com</span>
+                </a>
+            </div>
+            <!-- Rights Reserved -->
+            <div class="text-xs mt-2 sm:mt-0">
+                <p>&copy; 2024 ImLouis and ImNoahDev. All rights reserved.</p>
+            </div>
+            <!-- Website Links -->
+        </div>
+    </div>
+</footer>
+
+
+    <!-- JavaScript for fetching leaderboard data and keyset pagination -->
+    <script>
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        const userID = urlParams.get('user_id')
+
+        let nextCursor = null;
+        let pageEnded = false;
+        let isLoading = false;
+        
+        let fullWidthState = null;
+
+        let powerUnix;
+
+        let bannerTimer = 0
+
+  
+
+
+        async function fetchLeaderboardData() {
+            const url = nextCursor != null ? `/api/leaderboard?next_cursor=${nextCursor}` : '/api/leaderboard';
+            try {
+                if (bannerTimer > 0) throw new Error('On Rate Limit');
+                if (pageEnded) throw new Error('End of Page');
+                const response = await fetch(url);
+                if (response.status == 429) {
+                    bannerTimer += 20
+                    updateBanner()
+                    throw new Error('Rate Limit getting leaderboard');
+                }
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                const data = await response.json();
+
+                if (data.next_cursor == undefined) {
+                    pageEnded = true
+                    document.getElementById("loader").style.display = "none"
+                    document.getElementById("end").style.display = "block"
+
+                    return null
+                }
+
+                nextCursor = data.next_cursor
+
+                return data;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                return null;
+            }
+        }
+
+
+        async function renderLeaderboard() {
+            if (isLoading) return;
+            console.log("Rendering Leaderboard")
+            isLoading = true;
+
+            const leaderboardContainer = document.getElementById('leaderboard');
+            const loader = document.getElementById('loader');
+            
+            // Show loader while fetching data
+            loader.style.display = 'block';
+            
+        
+            let data
+            // Fetch leaderboard data
+            try {
+                data = await fetchLeaderboardData();
+                if (data == null){
+                    throw new Error('Error getting Leaderboard data');
+                }
+            } catch (error) {
+
+                console.error(error)
+                isLoading = false;
+                return
+            }
+
+            try {
+                if (bannerTimer > 0) throw new Error('On Rate Limit');
+                let response = await fetch("/api/leaderboard/winner")
+                if (response.status == 429) {
+                    bannerTimer += 20
+                    updateBanner()
+                    throw new Error('Rate Limit getting leaderboard');
+                }
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                let data = await response.json()
+                powerUnix = data.unix
+            } catch (error) {
+                console.error(error)
+            }
+            
+
+            // Hide loader after fetching data
+            loader.style.display = 'none';
+            isLoading = false;
+            
+            if (data && data.leaderboard) {
+                // Render leaderboard entries
+                let newPeople = ""
+
+                data.leaderboard.forEach(entry => {
+                    const uId = entry.id;
+                    let profilePicture = entry.avatar;
+                    let realName = entry.realname;
+                    let displayName = entry.displayname || realName;
+                    let sessions = entry.sessions;
+                    let minutes = entry.minutes;
+                    let rank = entry.rank;
+                    let ticketUrl = "https://emoji.slack-edge.com/T0266FRGM/tw_admission_tickets/cab11d6f34ffab2d.png";
+                    let textcolor = 'text-gray'
+                    let timeZone = entry.tz;
+                    let timezoneColor = 'bg-gray-600'
+                    let nullcolor = 'bg-gray-800'
+                    let paddingu = "p-4"
+                    if (timeZone) {
+                        timeZone = timeZone.replace(/_/g, ' ').replace(/\//g, ', ').split(', ').reverse().join(', ');
+                    }
+                    if (!profilePicture) {
+                        profilePicture = '/public/nullimage.jpg';
+                    }
+                    if (!timeZone) {
+                        timeZone = 'Error with user data';
+                    }
+                    if (realName === null && displayName === null) {
+                        nullcolor = 'bg-gradient-to-r from-red-900 to-red-800'
+                        timezoneColor = ''
+                        timeZone = ""
+                        realName = 'Error with user data'
+                        displayName = 'Error'
+                    }
+
+                    if (rank == 1) {
+                        nullcolor = 'bg-gradient-to-r from-yellow-600 to-yellow-400'
+                        textcolor = 'text-black'
+                        timezoneColor = 'shadow-2xl bg-yellow-500' 
+                        ticketUrl = "public/blueTicket.png"
+                        paddingu = "p-6"
+
+                    }
+
+                    if (userID==uId) {
+                        timezoneColor = 'bg-lime-800'
+                        nullcolor = 'bg-lime-900'
+                        if (rank == 1) {
+                            nullcolor = 'bg-gradient-to-r from-yellow-600 to-yellow-400'
+                        textcolor = 'text-black'
+                        timezoneColor = 'shadow-2xl bg-yellow-500' 
+                        ticketUrl = "public/blueTicket.png"
+                        paddingu = "p-6"
+                        
+                        }
+                    }
+                    // Create entry HTML
+                    const entryHTML = `
+                        <div class="flex items-center ${paddingu} bg-white dark:${nullcolor} shadow-md rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                            <a href="https://hackclub.slack.com/team/${uId}" target="_blank" rel="noreferrer noopener" >
+                                <div class="flex items-center space-x-4">
+                                    <span class="text-2xl font-bold ${textcolor}-700 dark:${textcolor}-300">${rank}.</span>
+                                    <img src="${profilePicture}" alt="${realName}'s Profile Picture" class="w-12 h-12 rounded-xl">
+                                    <div>
+                                        <p class="dpn max-w-32 break-words text-lg font-semibold dark:${textcolor}-300 mr-2">${displayName}</p>
+                                        <p class="idn text-lg font-semibold dark:${textcolor}-300">${uId}</p>
+                                        <p class="${textcolor}-600 dark:${textcolor}-400">@${realName}</p>
+                                    </div>
+                                </div>
+                            </a>
+
+                            
+                            ${
+                            rank == 1 ?  `<div style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz ml-8 text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                                <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">${timeZone}</p>
+                            </div>` : `<div class="tz ml-8 text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                                <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">${timeZone}</p>
+                            </div>`
+                            }
+
+                            ${
+                            rank == 1 ?  `<div style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz timer tie-dye-background ml-auto mr-2 font-bold text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                                <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">0:0:0</p>
+                            </div>` : ``
+                            }
+
+                            <div class="ml-auto mr-2 flex items-center space-x-2">
+                                <p class="text-2xl font-bold ${textcolor}-700 dark:${textcolor}-300">${Math.floor(minutes/60)}</p>
+                                <img src="${ticketUrl}" alt="Ticket Icon" class="w-8 h-8">
+                            </div>
+                        </div>
+                    `;
+
+
+                    // Append entry to leaderboard container
+                    newPeople += entryHTML
+
+            })
+
+            leaderboardContainer.innerHTML += newPeople;
+            TZAdjust()
+        }}
+        
+
+        // Load initial leaderboard when the page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            await renderLeaderboard();
+            await renderPerson();
+            loadSequence();
+                    
+        });
+
+        // Infinite scroll with keyset pagination
+        window.addEventListener('scroll', async () => {
+            if (window.innerHeight + window.scrollY + 800 >= document.body.offsetHeight) {
+                console.log("Trying to load more data")
+                renderLeaderboard();
+            }
+        });
+        
+        window.addEventListener("resize", changeSizeOfTZ)
+
+        async function changeSizeOfTZ(){
+            if (window.innerWidth < 700){
+                if (fullWidthState) {
+                    var elements = document.getElementsByClassName('tz');
+        
+                    for (var i = 0; i < elements.length; i++) {
+                        elements[i].style.display = 'none';
+                    }
+                }
+                fullWidthState = false
+            } else {
+                if (!fullWidthState) {
+                    var elements = document.getElementsByClassName('tz');
+        
+                    for (var i = 0; i < elements.length; i++) {
+                        elements[i].style.display = 'block';
+                    }
+                }
+                fullWidthState = true
+            }
+        }
+
+        async function TZAdjust(){
+            if (window.innerWidth < 700){
+                var elements = document.getElementsByClassName('tz');
+    
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].style.display = 'none';
+                }
+                fullWidthState = false
+            } else {
+                var elements = document.getElementsByClassName('tz');
+    
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].style.display = 'block';
+                }
+                fullWidthState = true
+            }
+        }
+
+        async function loadSequence(){
+            console.log("Loading")
+            TZAdjust()
+            setInterval(updateTimer, 20000)
+            updateTimer()
+            setInterval(updateBanner,1000)
+            setInterval(()=>{location.reload();},15*60*1000) // Reloads Page every 15 mins :o
+        }
+        
+
+        // Keep track of pressed keys
+        var pressedKeys = {};
+        var idMode = false
+
+        document.addEventListener('keydown', function(event) {
+        // Set the corresponding key in the pressedKeys object to true
+        pressedKeys[event.key] = true;
+
+        // Check if both '.' and '/' keys are pressed
+        if (pressedKeys['/'] && pressedKeys['i'] && pressedKeys['d']) {
+            idMode = !idMode
+            if (idMode){
+                var elements = document.getElementsByClassName('dpn');
+    
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].style.display = 'none';
+                }
+                var elements = document.getElementsByClassName('idn');
+    
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].style.display = 'block';
+                }
+            } else {
+                var elements = document.getElementsByClassName('dpn');
+    
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].style.display = 'block';
+                }
+                var elements = document.getElementsByClassName('idn');
+    
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].style.display = 'none';
+                }
+            }
+        }
+        });
+
+        document.addEventListener('keyup', function(event) {
+        // Set the corresponding key in the pressedKeys object to false when released
+        pressedKeys[event.key] = false;
+        });
+
+        async function updateBanner(){
+            if(bannerTimer > 0){
+                document.getElementById("rate-banner").style.display = "block"
+                document.getElementById("rate-time").innerText = bannerTimer
+                bannerTimer = bannerTimer - 1
+            } else {
+                document.getElementById("rate-banner").style.display = "none"
+            }
+        }
+
+    
+        async function updateTimer() {
+            unixDate = powerUnix
+            // Get current Unix timestamp in seconds
+            const currentUnixTime = Math.floor(Date.now() / 1000);
+            
+            // Calculate the difference in seconds
+            const differenceInSeconds = currentUnixTime - unixDate;
+            
+            // Calculate days, hours, and minutes
+            const days = Math.floor(differenceInSeconds / (60 * 60 * 24));
+            const hours = Math.floor((differenceInSeconds % (60 * 60 * 24)) / (60 * 60));
+            const minutes = Math.floor((differenceInSeconds % (60 * 60)) / 60);
+            
+            // Update the timer display
+            let timers = document.getElementsByClassName("timer")
+            console.log(timers)
+            for(let timer in timers){
+                timers[ti].innerHTML = `In 1st place for: <br> ${days}d ${hours}h ${minutes}m`
+            })
+
+            try {
+                if (bannerTimer > 0) throw new Error('On Rate Limit');
+                let response = await fetch("/api/sessions")
+                if (response.status == 429) {
+                    bannerTimer += 20
+                    updateBanner()
+                    throw new Error('Rate Limit getting leaderboard');
+                }
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                let data = await response.json()
+                if (data.error) {
+                    throw Error("There was an error with the hack hour API")
+                    console.error(error)
+                }
+
+                document.getElementById("sessions").innerText = data.sessions
+                document.getElementById("sessions").className = "text-lg font-semibold text-white"
+        
+            } catch (error) {
+                document.getElementById("sessions").innerText = "Arcade API is down!"
+                document.getElementById("sessions").className = "text-lg font-semibold text-red-500"
+                console.error(error)
+            }
+
+            try {
+                if (bannerTimer > 0) throw new Error('On Rate Limit');
+                let response = await fetch("/api/leaderboard/rank/"+userID)
+                if (response.status == 429) {
+                    bannerTimer += 20
+                    updateBanner()
+                    throw new Error('Rate Limit getting leaderboard');
+                }
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                let data = await response.json()
+                if (data.error) {
+                    throw Error("There was an error with the hack hour API")
+                    console.error(error)
+                }
+
+                document.getElementById("rank").innerText = data.rank
+                document.getElementById("rank").className = "text-lg font-semibold text-white"
+        
+            } catch (error) {
+                document.getElementById("rank").innerText = "Not Found"
+                document.getElementById("rank").className = "text-lg font-semibold text-red-500"
+                console.error(error)
+            }
+        
+        
+    }
+    async function renderPerson() {
+    if (userID) {
+                        let uId = userID;
+                        let response = await fetch("/api/leaderboard/rank/"+uId)
+                        let data = await response.json()
+                        response = await fetch("/api/user/"+uId)
+                        let youUser = await response.json()
+                        let profilePicture = youUser.avatar;
+                        let realName = youUser.realname;
+                        let displayName = youUser.displayname || realName;
+                        let sessions = data.sessions;
+                        let minutes = sessions*60;
+                        let rank = data.rank;
+                        let ticketUrl = "https://emoji.slack-edge.com/T0266FRGM/tw_admission_tickets/cab11d6f34ffab2d.png";
+                        let textcolor = 'text-gray'
+                        let timeZone = youUser.tz;
+                        let timezoneColor = 'bg-lime-800'
+                        let nullcolor = 'bg-lime-900'
+        8
+                        const userentryHTML = `
+                        <div class="flex items-center p-3 bg-white dark:${nullcolor} shadow-md rounded-lg hover:shadow-lg transform transition-all duration-300 width-full sticky">
+                            <a href="https://hackclub.slack.com/team/${uId}" target="_blank" rel="noreferrer noopener" >
+                                <div class="flex items-center space-x-4">
+                                    <span class="text-2xl font-bold ${textcolor}-700 dark:${textcolor}-300">${rank}.</span>
+                                    <img src="${profilePicture}" alt="${realName}'s Profile Picture" class="w-12 h-12 rounded-xl">
+                                    <div>
+                                        <p class="dpn max-w-32 break-words text-lg font-semibold dark:${textcolor}-300 mr-2">You</p>
+                                        <p class="idn text-lg font-semibold dark:${textcolor}-300">${uId}</p>
+                                        <p class="${textcolor}-600 dark:${textcolor}-400">@${realName}</p>
+                                    </div>
+                                </div>
+                            </a>
+
+                            
+                            ${
+                            rank == 1 ?  `<div style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz ml-8 text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                                <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">${timeZone}</p>
+                            </div>` : `<div class="tz ml-8 text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                                <p class="${textcolor}-600 dark:${textcolor}-300 font-bold">${timeZone}</p>
+                            </div>`
+                            }
+
+                            ${
+                            rank == 1 ?  `<div style="box-shadow: 0 0px 10px 2px rgb(0 0 0 / 0.35);" class="tz timer tie-dye-background ml-auto mr-2 font-bold text-center ${timezoneColor} px-2 py-1 rounded-xl">
+                                <p class="text-black-600 dark:text-black-300 font-bold">0:0:0</p>
+                            </div>` : ``
+                            }
+
+                            <div class="ml-auto mr-2 flex items-center space-x-2">
+                                <p class="text-2xl font-bold ${textcolor}-700 dark:${textcolor}-300">${Math.floor(minutes/60)}</p>
+                                <img src="${ticketUrl}" alt="Ticket Icon" class="w-8 h-8">
+                            </div>
+                        </div>
+                    `;
+                        
+                    const leaderboardContainer2 = document.getElementById('yourstats');
+                    leaderboardContainer2.innerHTML = userentryHTML
+                    }}
+
+    </script>
+
+</body>
+
+</html>
